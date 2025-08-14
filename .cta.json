@@ -1,0 +1,11 @@
+{
+  "projectName": "my-app",
+  "mode": "code-router",
+  "typescript": true,
+  "tailwind": false,
+  "packageManager": "pnpm",
+  "git": true,
+  "version": 1,
+  "framework": "react-cra",
+  "chosenAddOns": []
+}
