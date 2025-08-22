@@ -1,14 +1,261 @@
+@import "tailwindcss";
+@import "tw-animate-css";
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* This custom variant is for your @tailwindcss/vite setup */
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  /* Light Theme Color Variables */
+  :root {
+    --background: 255 255 255; /* white */
+    --foreground: 26 26 26; /* dark gray */
+    --muted: 245 245 245; /* light gray */
+    --muted-foreground: 115 115 115; /* medium gray */
+    --primary: 64 64 64; /* dark gray */
+    --primary-foreground: 255 255 255; /* white */
+    --destructive: 220 38 38; /* red */
+    --destructive-foreground: 255 255 255; /* white */
+    --border: 229 229 229; /* light gray border */
+    --ring: 209 213 219; /* ring color */
+    --radius: 0.5rem;
+
+    /* Chart Colors */
+    --chart-1: 59 130 246; /* blue */
+    --chart-2: 16 185 129; /* green */
+    --chart-3: 245 158 11; /* orange */
+  }
+
+  /* Dark Theme Color Variables */
+  .dark {
+    --background: 10 10 10; /* very dark */
+    --foreground: 255 255 255; /* white */
+    --muted: 38 38 38; /* dark gray */
+    --muted-foreground: 163 163 163; /* light gray */
+    --primary: 156 163 175; /* light gray */
+    --primary-foreground: 10 10 10; /* very dark */
+    --destructive: 239 68 68; /* red */
+    --destructive-foreground: 255 255 255; /* white */
+    --border: 38 38 38; /* dark border */
+    --ring: 64 64 64; /* darker ring */
+
+    /* Chart Colors */
+    --chart-1: 96 165 250; /* lighter blue */
+    --chart-2: 52 211 153; /* lighter green */
+    --chart-3: 251 191 36; /* lighter orange */
+  }
+
+  /* Base element styles */
+  * {
+    border-color: rgb(var(--border));
+  }
+
+  body {
+    background-color: rgb(var(--background));
+    color: rgb(var(--foreground));
+    margin: 0;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+      "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Interactive element styles */
+  button,
+  select,
+  [role="button"],
+  [role="combobox"],
+  [role="menuitem"],
+  .cursor-pointer {
+    cursor: pointer;
+  }
+
+  /* Hover states */
+  select:hover:not(:disabled),
+  input:hover:not(:disabled):not(:focus),
+  textarea:hover:not(:disabled):not(:focus) {
+    background-color: rgb(var(--muted) / 0.5);
+    transition: background-color 0.15s ease-in-out;
+  }
+
+  /* Focus states */
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: 2px solid rgb(var(--ring));
+    outline-offset: 2px;
+    background-color: rgb(var(--background));
+  }
+
+  /* List styling with better spacing */
+  ul,
+  ol {
+    margin: 1rem 0;
+    padding-left: 1.5rem;
+  }
+
+  li {
+    margin: 0.75rem 0; /* Add vertical spacing between list items */
+    line-height: 1.6; /* Better line height for readability */
+  }
+
+  /* Nested lists */
+  li ul,
+  li ol {
+    margin: 0.5rem 0; /* Less margin for nested lists */
+    padding-left: 1.25rem;
+  }
+
+  li li {
+    margin: 0.5rem 0; /* Less spacing for nested items */
+  }
+
+  /* Inline code styling */
+  code:not(pre code) {
+    background-color: rgb(var(--muted)) !important;
+    color: rgb(var(--foreground)) !important;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+    font-family:
+      source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+  }
+
+  /* Block code styling */
+  pre {
+    margin: 1.5rem 0 !important;
+    padding: 1rem !important;
+    border-radius: 0.5rem !important;
+    overflow-x: auto;
+    background-color: rgb(var(--muted)) !important;
+    border: 1px solid rgb(var(--border)) !important;
+  }
+
+  pre code {
+    background-color: transparent !important;
+    color: rgb(var(--foreground)) !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    font-family:
+      source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+  }
+
+  /* Highlight.js overrides */
+  .hljs {
+    background-color: rgb(var(--muted)) !important;
+    color: rgb(var(--foreground)) !important;
+    padding: 0 !important;
+  }
+
+  /* KaTeX / Math Styling */
+  .katex {
+    font-size: 1em !important;
+  }
+
+  .math.math-inline {
+    display: inline;
+    margin: 0 2px;
+  }
+
+  .math.math-display {
+    display: block;
+    text-align: center;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .katex-display {
+    margin: 1.5rem 0;
+    text-align: center;
+  }
+
+  .katex-display > .katex {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  /* Responsive Math */
+  @media (max-width: 640px) {
+    .katex {
+      font-size: 0.9em !important;
+    }
+    .katex-display {
+      font-size: 0.85em !important;
+    }
+  }
+
+  /* Fix for unwanted ScrollArea padding */
+  [data-radix-scroll-area-viewport] > div {
+    padding-bottom: 0 !important;
+  }
+
+  /* Alternative fix for TanStack dev tools padding */
+  [data-testid*="devtools"] {
+    padding-bottom: 0 !important;
+  }
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
-    monospace;
+/* Component layer */
+@layer components {
+  /* Custom utility classes that work */
+  .bg-theme-background {
+    background-color: rgb(var(--background)) !important;
+  }
+
+  .bg-theme-muted {
+    background-color: rgb(var(--muted)) !important;
+  }
+
+  .text-theme-foreground {
+    color: rgb(var(--foreground)) !important;
+  }
+
+  .text-theme-muted-foreground {
+    color: rgb(var(--muted-foreground)) !important;
+  }
+
+  .border-theme-border {
+    border-color: rgb(var(--border)) !important;
+  }
+
+  /* Custom message backgrounds */
+  .user-message-bg {
+    background-color: rgb(var(--muted) / 0.3);
+  }
+
+  .assistant-message-bg {
+    background-color: rgb(var(--background));
+  }
+
+  /* Custom button classes - opt-in only */
+  .btn-primary {
+    background-color: rgb(var(--primary)) !important;
+    color: rgb(var(--primary-foreground)) !important;
+    border: none !important;
+    border-radius: calc(var(--radius)) !important;
+    font-weight: 500 !important;
+    transition: all 0.15s ease-in-out !important;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background-color: rgb(var(--primary) / 0.9) !important;
+  }
+
+  .btn-destructive {
+    background-color: rgb(var(--destructive)) !important;
+    color: rgb(var(--destructive-foreground)) !important;
+    border: none !important;
+    border-radius: calc(var(--radius)) !important;
+    font-weight: 500 !important;
+    transition: all 0.15s ease-in-out !important;
+  }
+
+  .btn-destructive:hover:not(:disabled) {
+    background-color: rgb(var(--destructive) / 0.9) !important;
+  }
 }
