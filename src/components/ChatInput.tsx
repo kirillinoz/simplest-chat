@@ -1,13 +1,17 @@
 import { useState, useRef } from "react";
 import { Send, Paperclip, X, FileText, AlertCircle } from "lucide-react";
-import { chatActions } from "../store/chatStore";
+import { chatActions, chatStore } from "../store/chatStore";
 import { fileStorage } from "../utils/fileStorage";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { ModelSelector } from "./ModelSelector";
 import { ThinkingBudgetSelector } from "./ThinkingBudgetSelector";
+import { useStore } from "@tanstack/react-store";
+import { TemperatureSelector } from "./TemperatureSelector";
+import { ResponseStyleSelector } from "./ResponseStyleSelector";
 
 export const ChatInput = () => {
+  const { settings } = useStore(chatStore);
   const [message, setMessage] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
   const [uploadError, setUploadError] = useState<string>("");
@@ -249,23 +253,51 @@ export const ChatInput = () => {
         />
       </div>
 
-      {/* Toolbar - Model, Thinking Budget, and Attachment Selectors */}
-      <div className="flex items-center justify-between gap-4 px-4 py-2 border-b border-theme-border bg-theme-muted/50">
-        <div className="flex items-center gap-4">
-          <ModelSelector />
-          <ThinkingBudgetSelector />
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            className="h-8 px-3 text-sm hover:bg-theme-muted border-theme-border"
-            title="Images (PNG, JPEG, WebP, HEIC, HEIF) up to 20MB • PDFs up to 50MB"
-          >
-            <Paperclip className="h-4 w-4 mr-2" />
-            Attach
-          </Button>
+      {/* Toolbar - Model and Setting Controls */}
+      <div className="px-4 py-3 border-b border-theme-border bg-theme-muted/50">
+        <div className="flex gap-4">
+          {/* Model Selector */}
+          <div>
+            <ModelSelector />
+          </div>
+
+          {/* Settings based on mode */}
+          {settings.settingsMode === "simple" ? (
+            <>
+              {/* Thinking Budget */}
+              <div>
+                <ThinkingBudgetSelector />
+              </div>
+
+              {/* Temperature Slider */}
+              <div>
+                <TemperatureSelector />
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Response Style Selector */}
+              <div>
+                <ResponseStyleSelector />
+              </div>
+            </>
+          )}
+
+          {/* Attach Button */}
+          <div className="flex items-end">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="h-8 px-3 text-sm hover:bg-theme-muted border-theme-border w-full"
+              title="Images (PNG, JPEG, WebP, HEIC, HEIF) up to 20MB • PDFs up to 50MB"
+            >
+              <Paperclip className="h-4 w-4 mr-2" />
+              Attach
+            </Button>
+          </div>
         </div>
       </div>
     </div>

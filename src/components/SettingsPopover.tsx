@@ -1,291 +1,274 @@
 import { useState } from "react";
+import { Settings, Trash2, AlertTriangle } from "lucide-react";
 import { useStore } from "@tanstack/react-store";
 import { chatStore, chatActions } from "../store/chatStore";
-import { Input } from "./ui/input";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Separator } from "./ui/separator";
-import { Key, Check, Eye, EyeOff, Settings, Trash2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { fileStorage } from "../utils/fileStorage";
+import type { SettingsMode } from "../types/chat";
 
 export const SettingsPopover = () => {
   const { settings } = useStore(chatStore);
-  const [apiKey, setApiKey] = useState(settings.geminiApiKey || "");
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
+  const [apiKey, setApiKey] = useState(settings.geminiApiKey);
   const [isClearing, setIsClearing] = useState(false);
+  const [storageInfo, setStorageInfo] = useState<{
+    used: number;
+    available: number;
+  } | null>(null);
 
-  const handleSave = async () => {
-    if (!apiKey.trim()) {
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      chatActions.setApiKey(apiKey.trim());
-      setIsSaved(true);
-      setTimeout(() => setIsSaved(false), 2000);
-    } catch (error) {
-      console.error("Failed to set API key:", error);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleApiKeyChange = (value: string) => {
+    setApiKey(value);
+    chatActions.setApiKey(value);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleSave();
-    }
-  };
-
-  const maskApiKey = (key: string) => {
-    if (!key) return "";
-    if (key.length <= 8) return "*".repeat(key.length);
-    return key.slice(0, 4) + "*".repeat(key.length - 8) + key.slice(-4);
-  };
-
-  const handleOpenChange = (open: boolean) => {
-    setIsOpen(open);
-    if (open) {
-      // Reset form when opening
-      setApiKey(settings.geminiApiKey || "");
-      setShowApiKey(false);
-      setIsSaved(false);
-    }
+  const handleModeChange = (mode: SettingsMode) => {
+    chatActions.setSettingsMode(mode);
   };
 
   const handleClearAllData = async () => {
-    const confirmed = window.confirm(
-      "Are you sure you want to clear all data?\n\nThis will delete:\n• All chat conversations\n• API key\n• All settings\n• File uploads\n\nThis action cannot be undone."
-    );
-
-    if (!confirmed) return;
+    if (
+      !confirm(
+        "Are you sure you want to clear all data? This cannot be undone."
+      )
+    ) {
+      return;
+    }
 
     setIsClearing(true);
-
     try {
       // Clear all localStorage
       localStorage.clear();
 
-      // Clear sessionStorage as well
-      sessionStorage.clear();
+      // Clear IndexedDB file storage
+      await fileStorage.cleanup(0); // Clear all files
 
-      // Clear any IndexedDB stores (if you're using any)
-      if ("indexedDB" in window) {
-        try {
-          // This will clear file storage if you're using IndexedDB
-          const databases = await indexedDB.databases();
-          await Promise.all(
-            databases.map((db) => {
-              if (db.name) {
-                return new Promise((resolve, reject) => {
-                  const deleteReq = indexedDB.deleteDatabase(db.name!);
-                  deleteReq.onsuccess = () => resolve(undefined);
-                  deleteReq.onerror = () => reject(deleteReq.error);
-                });
-              }
-            })
-          );
-        } catch (error) {
-          console.warn("Could not clear IndexedDB:", error);
-        }
-      }
+      // Clear chat store
+      chatActions.clearAllData();
 
-      // Clear the store state
-      chatActions.clearAllData?.();
+      // Reset API key input
+      setApiKey("");
 
-      // Show success message briefly before reload
-      alert("All data cleared successfully!");
-
-      // Reload the page to reset the application state
-      window.location.reload();
+      alert("All data has been cleared.");
     } catch (error) {
       console.error("Error clearing data:", error);
-      alert("Error clearing data. Please try again.");
+      alert("Failed to clear all data. Please try again.");
+    } finally {
       setIsClearing(false);
     }
   };
 
+  const updateStorageInfo = async () => {
+    const info = await fileStorage.getStorageInfo();
+    setStorageInfo(info);
+  };
+
   return (
-    <Popover open={isOpen} onOpenChange={handleOpenChange}>
+    <Popover
+      onOpenChange={(open) => {
+        if (open) {
+          updateStorageInfo();
+        }
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
-          className="justify-start text-theme-muted-foreground hover:text-theme-foreground hover:bg-theme-muted h-8"
+          size="sm"
+          className="h-9 w-9 p-0 hover:bg-theme-muted text-theme-muted-foreground hover:text-theme-foreground"
         >
-          <Settings className="mr-2 h-4 w-4" />
-          <span className="text-sm">Settings</span>
+          <Settings className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        className="w-96 max-h-[80vh] overflow-y-auto bg-theme-background border-theme-border"
-        align="end"
-        side="right"
-        sideOffset={8}
-      >
-        <div className="space-y-4">
-          {/* Header */}
-          <div className="flex items-center gap-2">
-            <Settings className="h-4 w-4 text-theme-foreground" />
-            <h3 className="font-semibold text-sm text-theme-foreground">
-              Settings
-            </h3>
-          </div>
+      <PopoverContent className="w-96 p-0 bg-theme-background" align="end">
+        <div className="p-4">
+          <h3 className="font-semibold text-theme-foreground mb-4">Settings</h3>
 
-          <Separator className="bg-theme-border" />
+          <Tabs defaultValue="general" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 tabs-list">
+              <TabsTrigger value="general" className="tabs-trigger">
+                General
+              </TabsTrigger>
+              <TabsTrigger value="interface" className="tabs-trigger">
+                Interface
+              </TabsTrigger>
+              <TabsTrigger value="storage" className="tabs-trigger">
+                Storage
+              </TabsTrigger>
+            </TabsList>
 
-          {/* API Key Section */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Key className="h-4 w-4 text-theme-muted-foreground" />
-              <Label className="text-sm font-medium text-theme-foreground">
-                API Key
-              </Label>
+            {/* Fixed height container for all tab content */}
+            <div className="min-h-[280px]">
+              <TabsContent value="general" className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="api-key"
+                    className="text-sm font-medium text-theme-foreground"
+                  >
+                    Gemini API Key
+                  </Label>
+                  <Input
+                    id="api-key"
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => handleApiKeyChange(e.target.value)}
+                    placeholder="Enter your API key"
+                    className="bg-theme-background border-theme-border"
+                  />
+                  <p className="text-xs text-theme-muted-foreground">
+                    Get your API key from{" "}
+                    <a
+                      href="https://aistudio.google.com/app/apikey"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-chart-1 hover:underline"
+                    >
+                      Google AI Studio
+                    </a>
+                  </p>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="interface" className="space-y-4 mt-4">
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium text-theme-foreground">
+                    Settings Mode
+                  </Label>
+
+                  <div className="space-y-3">
+                    <label className="flex items-start space-x-3 cursor-pointer p-2 rounded-lg hover:bg-theme-muted/30">
+                      <input
+                        type="radio"
+                        name="settingsMode"
+                        value="simple"
+                        checked={settings.settingsMode === "simple"}
+                        onChange={() => handleModeChange("simple")}
+                        className="text-primary mt-1"
+                      />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-theme-foreground">
+                          Simple Mode
+                        </div>
+                        <div className="text-xs text-theme-muted-foreground mt-1">
+                          Separate controls for thinking budget and creativity
+                          level. Full control over model behavior.
+                        </div>
+                      </div>
+                    </label>
+
+                    <label className="flex items-start space-x-3 cursor-pointer p-2 rounded-lg hover:bg-theme-muted/30">
+                      <input
+                        type="radio"
+                        name="settingsMode"
+                        value="simplest"
+                        checked={settings.settingsMode === "simplest"}
+                        onChange={() => handleModeChange("simplest")}
+                        className="text-primary mt-1"
+                      />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-theme-foreground">
+                          Simplest Mode
+                        </div>
+                        <div className="text-xs text-theme-muted-foreground mt-1">
+                          Preset response styles for common use cases. Quick
+                          selection without technical details.
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+
+                  <div className="mt-4 p-3 bg-theme-muted/30 rounded-lg">
+                    <div className="text-xs text-theme-muted-foreground">
+                      <strong>Current:</strong>{" "}
+                      {settings.settingsMode === "simple"
+                        ? "Simple"
+                        : "Simplest"}{" "}
+                      Mode
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="storage" className="space-y-4 mt-4">
+                <div className="space-y-4">
+                  {/* Storage Usage Section */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-theme-foreground">
+                      Storage Usage
+                    </Label>
+                    {storageInfo ? (
+                      <div className="p-3 bg-theme-muted/30 rounded-lg">
+                        <div className="text-xs text-theme-muted-foreground space-y-1">
+                          <div className="flex justify-between">
+                            <span>Used:</span>
+                            <span>
+                              {(storageInfo.used / (1024 * 1024)).toFixed(1)} MB
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Available:</span>
+                            <span>
+                              {(storageInfo.available / (1024 * 1024)).toFixed(
+                                1
+                              )}{" "}
+                              MB
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-theme-muted/30 rounded-lg">
+                        <div className="text-xs text-theme-muted-foreground">
+                          Loading storage info...
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator className="bg-theme-border" />
+
+                  {/* Data Management Section */}
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-theme-foreground">
+                      Data Management
+                    </Label>
+
+                    <div className="space-y-2">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="w-full h-8 text-xs btn-destructive"
+                        onClick={handleClearAllData}
+                        disabled={isClearing}
+                      >
+                        {isClearing ? (
+                          <>
+                            <div className="h-3 w-3 animate-spin rounded-full border border-destructive-foreground border-t-transparent mr-2"></div>
+                            Clearing...
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="h-3 w-3 mr-2" />
+                            Clear All Data
+                          </>
+                        )}
+                      </Button>
+
+                      <div className="p-2 bg-destructive/10 border border-destructive/20 rounded-lg">
+                        <p className="text-xs text-destructive-foreground flex items-start">
+                          <AlertTriangle className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
+                          This will permanently delete all chats and files.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
             </div>
-
-            <div className="space-y-2">
-              <div className="relative">
-                <Input
-                  type={showApiKey ? "text" : "password"}
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  onKeyDown={handleKeyPress}
-                  placeholder="Enter your Gemini API key"
-                  className="pr-8 text-xs h-8 bg-theme-background border-theme-border text-theme-foreground"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 text-theme-muted-foreground hover:text-theme-foreground hover:bg-theme-muted"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                >
-                  {showApiKey ? (
-                    <EyeOff className="h-3 w-3" />
-                  ) : (
-                    <Eye className="h-3 w-3" />
-                  )}
-                </Button>
-              </div>
-
-              {settings.geminiApiKey && (
-                <p className="text-xs text-theme-muted-foreground">
-                  Current:{" "}
-                  <code className="bg-theme-muted text-theme-foreground px-1 rounded text-xs">
-                    {maskApiKey(settings.geminiApiKey)}
-                  </code>
-                </p>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                onClick={handleSave}
-                disabled={
-                  !apiKey.trim() ||
-                  isLoading ||
-                  apiKey === settings.geminiApiKey
-                }
-                className="flex items-center gap-2 text-xs h-7"
-                size="sm"
-              >
-                {isSaved ? (
-                  <>
-                    <Check className="h-3 w-3" />
-                    Saved
-                  </>
-                ) : (
-                  "Save"
-                )}
-              </Button>
-
-              {apiKey !== (settings.geminiApiKey || "") && (
-                <Button
-                  variant="outline"
-                  onClick={() => setApiKey(settings.geminiApiKey || "")}
-                  className="text-xs h-7 border-theme-border hover:bg-theme-muted"
-                  size="sm"
-                >
-                  Reset
-                </Button>
-              )}
-            </div>
-
-            <div className="text-xs text-theme-muted-foreground space-y-1">
-              <p>
-                • Get your key from{" "}
-                <a
-                  href="https://makersuite.google.com/app/apikey"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-chart-1 hover:text-chart-1/80 underline"
-                >
-                  Google AI Studio
-                </a>
-              </p>
-              <p>• Stored locally in your browser</p>
-            </div>
-          </div>
-
-          <Separator className="bg-theme-border" />
-
-          {/* App Info Section */}
-          <div className="space-y-2">
-            <h4 className="font-medium text-sm text-theme-foreground">About</h4>
-            <div className="space-y-1 text-xs text-theme-muted-foreground">
-              <div className="flex justify-between">
-                <span>Version:</span>
-                <code className="bg-theme-muted text-theme-foreground px-1 rounded text-xs">
-                  1.0.0
-                </code>
-              </div>
-              <div className="flex justify-between">
-                <span>Storage:</span>
-                <span>Local Browser</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Models:</span>
-                <span>Gemini 2.5 Family</span>
-              </div>
-            </div>
-          </div>
-
-          <Separator className="bg-theme-border" />
-
-          {/* Danger Zone */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-destructive text-sm">
-                  Clear All Data
-                </p>
-                <p className="text-xs text-destructive/80">
-                  Delete all chats and settings
-                </p>
-              </div>
-              <Button
-                variant="destructive"
-                size="sm"
-                className="h-7 text-xs btn-destructive"
-                onClick={handleClearAllData}
-                disabled={isClearing}
-              >
-                {isClearing ? (
-                  <>
-                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent mr-1" />
-                    Clearing...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-3 w-3 mr-1 text-theme-background" />
-                    Clear
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
+          </Tabs>
         </div>
       </PopoverContent>
     </Popover>

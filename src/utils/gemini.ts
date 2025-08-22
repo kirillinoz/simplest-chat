@@ -234,6 +234,7 @@ export const sendMessageToGeminiStream = async (
   attachments: File[] = [],
   modelName: GeminiModel = "gemini-2.5-flash",
   thinkingBudget: ThinkingBudget = "dynamic",
+  temperature: number = 0.7,
   onChunk: (chunk: string) => void
 ) => {
   if (!genAI) {
@@ -250,7 +251,7 @@ export const sendMessageToGeminiStream = async (
 
     const currentMessageParts: any[] = [{ text: message }];
 
-    // Process attachments (same logic as non-streaming)
+    // Process attachments (same logic as before)
     if (attachments.length > 0) {
       for (const file of attachments) {
         if (isPDF(file)) {
@@ -339,12 +340,14 @@ export const sendMessageToGeminiStream = async (
       parts: currentMessageParts,
     });
 
-    // Create config with thinking budget
+    // Create config with thinking budget and temperature
     const thinkingBudgetValue = getThinkingBudgetValue(
       thinkingBudget,
       modelName
     );
-    const config: any = {};
+    const config: any = {
+      temperature: temperature, // Add temperature to config
+    };
 
     // Only add thinking config if the model supports it and budget is not default
     if (
@@ -360,14 +363,16 @@ export const sendMessageToGeminiStream = async (
       "Using thinking budget:",
       thinkingBudget,
       "->",
-      thinkingBudgetValue
+      thinkingBudgetValue,
+      "and temperature:",
+      temperature
     );
 
-    // Use streaming API with thinking config
+    // Use streaming API with config
     const response = await genAI.models.generateContentStream({
       model: modelName,
       contents: contents,
-      config: Object.keys(config).length > 0 ? config : undefined,
+      config: config,
     });
 
     let fullResponse = "";

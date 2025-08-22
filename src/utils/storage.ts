@@ -49,6 +49,9 @@ export const storage = {
     return {
       selectedModel: "gemini-2.5-flash",
       thinkingBudgets: defaultThinkingBudgets,
+      temperature: 0.7, // Default temperature
+      settingsMode: "simple", // Default to simple mode
+      responseStyle: "balanced", // Default response style
       ...parsed,
     };
   },

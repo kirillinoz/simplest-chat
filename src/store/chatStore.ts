@@ -5,7 +5,10 @@ import type {
   AppSettings,
   GeminiModel,
   ThinkingBudget,
+  SettingsMode,
+  ResponseStyle,
 } from "../types/chat";
+import { RESPONSE_STYLES } from "../types/chat";
 import { storage } from "../utils/storage";
 import { initializeGemini, sendMessageToGeminiStream } from "../utils/gemini";
 import type { FileReference } from "../utils/fileStorage";
@@ -56,6 +59,34 @@ export const chatActions = {
         ...chatStore.state.settings.thinkingBudgets,
         [model]: budget,
       },
+    };
+    storage.saveSettings(settings);
+    chatStore.setState((prev) => ({ ...prev, settings }));
+  },
+
+  setTemperature: (temperature: number) => {
+    const settings = { ...chatStore.state.settings, temperature };
+    storage.saveSettings(settings);
+    chatStore.setState((prev) => ({ ...prev, settings }));
+  },
+
+  setSettingsMode: (mode: SettingsMode) => {
+    const settings = { ...chatStore.state.settings, settingsMode: mode };
+    storage.saveSettings(settings);
+    chatStore.setState((prev) => ({ ...prev, settings }));
+  },
+
+  setResponseStyle: (style: ResponseStyle) => {
+    const styleConfig = RESPONSE_STYLES[style];
+    const settings = {
+      ...chatStore.state.settings,
+      responseStyle: style,
+      // Update both thinking budget and temperature based on the style
+      thinkingBudgets: {
+        ...chatStore.state.settings.thinkingBudgets,
+        [chatStore.state.settings.selectedModel]: styleConfig.thinkingBudget,
+      },
+      temperature: styleConfig.temperature,
     };
     storage.saveSettings(settings);
     chatStore.setState((prev) => ({ ...prev, settings }));
@@ -158,6 +189,9 @@ export const chatActions = {
         "gemini-2.5-flash": "medium",
         "gemini-2.5-pro": "high",
       },
+      temperature: 0.7,
+      settingsMode: "simple",
+      responseStyle: "balanced",
     };
 
     chatStore.setState(() => ({
@@ -248,12 +282,17 @@ export const chatActions = {
           parts: [{ text: msg.content }],
         }));
 
+      // Get current thinking budget and temperature
+      const thinkingBudget = settings.thinkingBudgets[settings.selectedModel];
+      const temperature = settings.temperature;
+
       await sendMessageToGeminiStream(
         content,
         conversationHistory,
-        validFiles, // Use validFiles instead of undefined attachments
+        validFiles,
         settings.selectedModel,
-        settings.thinkingBudgets[settings.selectedModel], // Add thinking budget
+        thinkingBudget,
+        temperature, // Pass temperature to API
         (chunk: string) => {
           // Update the streaming message
           const currentContent =
