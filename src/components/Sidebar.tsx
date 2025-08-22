@@ -57,7 +57,14 @@ export const Sidebar = () => {
     <div className="w-80 bg-theme-muted text-theme-foreground flex flex-col h-screen border-r border-theme-border">
       {/* Logo */}
       <div className="p-4 flex-shrink-0 border-b border-theme-border">
-        <h1 className="text-lg font-bold w-full">Simplest Chat</h1>
+        <div className="flex items-center gap-3">
+          <img
+            src="/logo.svg"
+            alt="Simplest Chat"
+            className="h-8 w-8 flex-shrink-0"
+          />
+          <h1 className="text-lg font-bold">Simplest Chat</h1>
+        </div>
       </div>
 
       {/* Header with New Chat button */}
