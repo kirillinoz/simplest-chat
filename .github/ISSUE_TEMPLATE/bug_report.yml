@@ -1,0 +1,71 @@
+name: '🐞 Bug Report'
+description: 'Create a report to help us improve the project.'
+title: '[Bug]: '
+labels: ['bug', 'triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to fill out this bug report. Please provide as much detail as possible.
+
+  - type: checkboxes
+    id: pre-flight-checks
+    attributes:
+      label: 'Pre-flight Checks'
+      description: 'Please ensure you have completed these steps before submitting.'
+      options:
+        - label: 'I have searched the existing [issues](https://github.com/YOUR_USERNAME/YOUR_REPO/issues) to make sure this bug has not been reported yet.'
+          required: true
+        - label: 'I am using the latest version of the project.'
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 'Bug Description'
+      description: 'A clear and concise description of what the bug is.'
+      placeholder: 'When I click the "Submit" button, the page crashes.'
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: 'Steps to Reproduce'
+      description: 'Please provide detailed steps to reproduce the behavior.'
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: 'Expected Behavior'
+      description: 'A clear and concise description of what you expected to happen.'
+      placeholder: 'I expected to be redirected to the success page.'
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 'Screenshots or Logs'
+      description: 'If applicable, add screenshots or log output to help explain your problem.'
+      placeholder: 'You can drag and drop images or paste log output here.'
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 'Environment'
+      description: 'Please provide details about the environment you are running this in.'
+      placeholder: |
+        - OS: [e.g., macOS, Windows 11]
+        - Browser: [e.g., Chrome, Firefox]
+        - Project Version: [e.g., 1.2.3]
+        - Node.js Version: [e.g., 20.x]
+    validations:
+      required: true

@@ -1,0 +1,11 @@
+# This file configures the issue creation menu.
+# It directs users to the appropriate template for their needs.
+
+blank_issues_enabled: false # Disables the ability to open a blank issue.
+contact_links:
+  - name: '❓ Ask a Question'
+    url: https://github.com/YOUR_USERNAME/YOUR_REPO/discussions/new?category=q-a
+    about: 'Please ask and answer questions here. Do not use issues for questions.'
+  - name: '💬 General Chat'
+    url: https://github.com/YOUR_USERNAME/YOUR_REPO/discussions
+    about: 'Please use GitHub Discussions for general chat and ideas.'

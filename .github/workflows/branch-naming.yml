@@ -1,0 +1,32 @@
+# This workflow enforces that new branches start with 'feature/' or 'fix/'
+name: 'Branch Naming Rules'
+
+on:
+  # Triggers the workflow on any push event
+  push:
+    # We ignore pushes to the main branch itself
+    branches-ignore:
+      - main
+
+jobs:
+  branch-naming-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Get branch name'
+        id: get_branch
+        run: echo "branch_name=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+
+      - name: 'Check branch name'
+        run: |
+          BRANCH_NAME="${{ steps.get_branch.outputs.branch_name }}"
+          
+          # This regex enforces 'feature/*' or 'fix/*'
+          REGEX="^(feature|fix)\/.+$"
+
+          if [[ ! $BRANCH_NAME =~ $REGEX ]]; then
+            echo "Branch name '$BRANCH_NAME' is not valid."
+            echo "It must start with 'feature/' or 'fix/' followed by more characters."
+            exit 1
+          fi
+          
+          echo "Branch name '$BRANCH_NAME' is valid."

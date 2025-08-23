@@ -1,299 +1,143 @@
-Welcome to your new TanStack app! 
+# Simplest Chat 💬
 
-# Getting Started
+A beautifully designed, open-source chat application built with a modern React stack. It leverages the power of Google's Gemini AI to provide intelligent and engaging conversations, all within a clean and minimalist interface.
 
-To run this application:
+<!-- BADGES -->
+<div align="center">
 
-```bash
-pnpm install
-pnpm start
-```
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Code Quality](https://github.com/kirillinoz/simplest-chat/actions/workflows/code-quality.yml/badge.svg)](https://github.com/kirillinoz/simplest-chat/actions/workflows/code-quality.yml)
+[![Issues](https://img.shields.io/github/issues/kirillinoz/simplest-chat)](https://github.com/kirillinoz/simplest-chat/issues)
+[![Forks](https://img.shields.io/github/forks/kirillinoz/simplest-chat)](https://github.com/kirillinoz/simplest-chat/network/members)
+[![Stars](https://img.shields.io/github/stars/kirillinoz/simplest-chat)](https://github.com/kirillinoz/simplest-chat/stargazers)
 
-# Building For Production
+</div>
 
-To build this application for production:
+---
 
-```bash
-pnpm build
-```
+## ✨ Key Features
 
-## Testing
+- **🤖 AI-Powered Conversations:** Real-time, intelligent chat powered by the Google Gemini API.
+- **📝 Full Markdown Support:** Format your messages with headers, lists, bold, italics, and more.
+- **💻 Code Syntax Highlighting:** Share code snippets with beautiful and accurate highlighting.
+- **🧮 LaTeX Math Rendering:** Display complex mathematical formulas seamlessly.
+- **📱 Responsive Design:** A clean and modern UI that looks great on any device.
+- **🚀 Built with a Modern Stack:** Leveraging the best of the React ecosystem for a fast and reliable experience.
 
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
+## 🖼️ Product & Screenshots
 
-```bash
-pnpm test
-```
+**[➡️ View Live Product](https://simplest-chat.vercel.app)**
 
-## Styling
+![Simplest Chat Screenshot](https://via.placeholder.com/800x500.png?text=Your+Screenshot+Here)
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
+![Simplest Chat Screenshot](https://via.placeholder.com/800x500.png?text=Your+Screenshot+Here)
 
+## 🛠️ Tech Stack
 
+This project is built with a modern, type-safe, and efficient stack:
 
-## Shadcn
+| Component           | Technology                                                       |
+| ------------------- | ---------------------------------------------------------------- |
+| **Framework**       | [React](https://react.dev/)                                      |
+| **Build Tool**      | [Vite](https://vitejs.dev/)                                      |
+| **Routing**         | [TanStack Router](https://tanstack.com/router/)                  |
+| **Styling**         | [TailwindCSS](https://tailwindcss.com/)                          |
+| **UI Components**   | [Shadcn UI](https://ui.shadcn.com/)                              |
+| **Language**        | [TypeScript](https://www.typescriptlang.org/)                    |
+| **Package Manager** | [pnpm](https://pnpm.io/)                                         |
+| **Code Quality**    | [ESLint](https://eslint.org/) & [Prettier](https://prettier.io/) |
 
-Add components using the latest version of [Shadcn](https://ui.shadcn.com/).
+## 🚀 Getting Started
 
-```bash
-pnpx shadcn@latest add button
-```
+Follow these instructions to get a local copy up and running for development and testing purposes.
 
+### Prerequisites
 
+- [Node.js](https://nodejs.org/) (v20.x or later recommended)
+- [pnpm](https://pnpm.io/installation) package manager
+  ```bash
+  npm install -g pnpm
+  ```
 
-## Routing
-This project uses [TanStack Router](https://tanstack.com/router). The initial setup is a file based router. Which means that the routes are managed as files in `src/routes`.
+### Installation & Setup
 
-### Adding A Route
+1.  **Fork the repository**
+    Click the "Fork" button at the top right of this page.
 
-To add a new route to your application just add another a new file in the `./src/routes` directory.
+2.  **Clone your forked repository**
 
-TanStack will automatically generate the content of the route file for you.
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/simplest-chat.git
+    cd simplest-chat
+    ```
 
-Now that you have two routes you can use a `Link` component to navigate between them.
+3.  **Install dependencies**
 
-### Adding Links
+    ```bash
+    pnpm install
+    ```
 
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
+### Running the Application
 
-```tsx
-import { Link } from "@tanstack/react-router";
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you use the `<Outlet />` component.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { Outlet, createRootRoute } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
-
-import { Link } from "@tanstack/react-router";
-
-export const Route = createRootRoute({
-  component: () => (
-    <>
-      <header>
-        <nav>
-          <Link to="/">Home</Link>
-          <Link to="/about">About</Link>
-        </nav>
-      </header>
-      <Outlet />
-      <TanStackRouterDevtools />
-    </>
-  ),
-})
-```
-
-The `<TanStackRouterDevtools />` component is not required so you can remove it if you don't want it in your layout.
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-const peopleRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/people",
-  loader: async () => {
-    const response = await fetch("https://swapi.dev/api/people");
-    return response.json() as Promise<{
-      results: {
-        name: string;
-      }[];
-    }>;
-  },
-  component: () => {
-    const data = peopleRoute.useLoaderData();
-    return (
-      <ul>
-        {data.results.map((person) => (
-          <li key={person.name}>{person.name}</li>
-        ))}
-      </ul>
-    );
-  },
-});
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-### React-Query
-
-React-Query is an excellent addition or alternative to route loading and integrating it into you application is a breeze.
-
-First add your dependencies:
+Once the setup is complete, you can run the development server:
 
 ```bash
-pnpm add @tanstack/react-query @tanstack/react-query-devtools
+pnpm dev
 ```
 
-Next we'll need to create a query client and provider. We recommend putting those in `main.tsx`.
+Open http://localhost:3000 in your browser to see the application.
 
-```tsx
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+### Available Scripts
 
-// ...
+- `pnpm dev`: Starts the development server.
+- `pnpm test`: Runs the test suite using Vitest.
+- `pnpm lint:check`: Checks for ESLint errors.
+- `pnpm format:check`: Checks for Prettier formatting errors.
 
-const queryClient = new QueryClient();
+## 🗺️ Roadmap
 
-// ...
+Here are some of the features and improvements planned for the future:
 
-if (!rootElement.innerHTML) {
-  const root = ReactDOM.createRoot(rootElement);
+- [ ] Copy messages buttons
+- [ ] Support for OpenAI API Key
+- [ ] Synchronization between devices
 
-  root.render(
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
-  );
-}
-```
+See the [open issues](https://github.com/kirillinoz/simplest-chat/issues) for a full list of proposed features (and known bugs).
 
-You can also add TanStack Query Devtools to the root route (optional).
+## 🤝 Contributing
 
-```tsx
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are greatly appreciated.
 
-const rootRoute = createRootRoute({
-  component: () => (
-    <>
-      <Outlet />
-      <ReactQueryDevtools buttonPosition="top-right" />
-      <TanStackRouterDevtools />
-    </>
-  ),
-});
-```
+Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
 
-Now you can use `useQuery` to fetch your data.
+## ⭐ Show Your Support
 
-```tsx
-import { useQuery } from "@tanstack/react-query";
+Give a ⭐️ if this project helped you! It encourages us to keep improving and adding new features.
 
-import "./App.css";
+## ✨ Contributors
 
-function App() {
-  const { data } = useQuery({
-    queryKey: ["people"],
-    queryFn: () =>
-      fetch("https://swapi.dev/api/people")
-        .then((res) => res.json())
-        .then((data) => data.results as { name: string }[]),
-    initialData: [],
-  });
+Thanks to these wonderful people who have contributed to the project:
 
-  return (
-    <div>
-      <ul>
-        {data.map((person) => (
-          <li key={person.name}>{person.name}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tbody>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/kirillinoz"><img src="https://avatars.githubusercontent.com/u/4282622?v=4?s=100" width="100px;" alt="Kirill Inozemtsev"/><br /><sub><b>Kirill Inozemtsev</b></sub></a><br /><a href="https://github.com/kirillinoz/simplest-chat/commits?author=kirillinoz" title="Code">💻</a> <a href="#maintenance-kirillinoz" title="Maintenance">🚧</a></td>
+    </tr>
+  </tbody>
+</table>
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
 
-export default App;
-```
+This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
 
-You can find out everything you need to know on how to use React-Query in the [React-Query documentation](https://tanstack.com/query/latest/docs/framework/react/overview).
+## 🛡️ Security Policy
 
-## State Management
+The security of this project is taken seriously. If you discover a security vulnerability, please follow our Security Policy to report it.
 
-Another common requirement for React applications is state management. There are many options for state management in React. TanStack Store provides a great starting point for your project.
+## 📜 License
 
-First you need to add TanStack Store as a dependency:
-
-```bash
-pnpm add @tanstack/store
-```
-
-Now let's create a simple counter in the `src/App.tsx` file as a demonstration.
-
-```tsx
-import { useStore } from "@tanstack/react-store";
-import { Store } from "@tanstack/store";
-import "./App.css";
-
-const countStore = new Store(0);
-
-function App() {
-  const count = useStore(countStore);
-  return (
-    <div>
-      <button onClick={() => countStore.setState((n) => n + 1)}>
-        Increment - {count}
-      </button>
-    </div>
-  );
-}
-
-export default App;
-```
-
-One of the many nice features of TanStack Store is the ability to derive state from other state. That derived state will update when the base state updates.
-
-Let's check this out by doubling the count using derived state.
-
-```tsx
-import { useStore } from "@tanstack/react-store";
-import { Store, Derived } from "@tanstack/store";
-import "./App.css";
-
-const countStore = new Store(0);
-
-const doubledStore = new Derived({
-  fn: () => countStore.state * 2,
-  deps: [countStore],
-});
-doubledStore.mount();
-
-function App() {
-  const count = useStore(countStore);
-  const doubledCount = useStore(doubledStore);
-
-  return (
-    <div>
-      <button onClick={() => countStore.setState((n) => n + 1)}>
-        Increment - {count}
-      </button>
-      <div>Doubled - {doubledCount}</div>
-    </div>
-  );
-}
-
-export default App;
-```
-
-We use the `Derived` class to create a new store that is derived from another store. The `Derived` class has a `mount` method that will start the derived store updating.
-
-Once we've created the derived store we can use it in the `App` component just like we would any other store using the `useStore` hook.
-
-You can find out everything you need to know on how to use TanStack Store in the [TanStack Store documentation](https://tanstack.com/store/latest).
-
-# Demo files
-
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
+Distributed under the Apache 2.0 License. See [**LICENSE**](LICENSE) and [**NOTICE**](NOTICE) for more information.
