@@ -28,9 +28,9 @@ A beautifully designed, open-source chat application built with a modern React s
 
 **[➡️ View Live Product](https://simplest-chat.vercel.app)**
 
-![Simplest Chat Screenshot](https://via.placeholder.com/800x500.png?text=Your+Screenshot+Here)
+![Simplest Chat Screenshot](https://imgur.com/nlGpRfn.png)
 
-![Simplest Chat Screenshot](https://via.placeholder.com/800x500.png?text=Your+Screenshot+Here)
+![Simplest Chat Screenshot](https://imgur.com/OWmcPyy.png)
 
 ## 🛠️ Tech Stack
 
