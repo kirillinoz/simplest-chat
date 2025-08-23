@@ -1,5 +1,7 @@
 # Simplest Chat 💬
 
+Simplest Chat redefines the AI chat experience by putting you in control. Say goodbye to subscription fees—with our **Bring-Your-Own-API-Key** model, you only pay for what you use. All your conversations are stored **locally on your device**, ensuring your data remains private and secure, with no need for a backend or cloud service.
+
 A beautifully designed, open-source chat application built with a modern React stack. It leverages the power of Google's Gemini AI to provide intelligent and engaging conversations, all within a clean and minimalist interface.
 
 <!-- BADGES -->
@@ -17,12 +19,12 @@ A beautifully designed, open-source chat application built with a modern React s
 
 ## ✨ Key Features
 
-- **🤖 AI-Powered Conversations:** Real-time, intelligent chat powered by the Google Gemini API.
-- **📝 Full Markdown Support:** Format your messages with headers, lists, bold, italics, and more.
-- **💻 Code Syntax Highlighting:** Share code snippets with beautiful and accurate highlighting.
-- **🧮 LaTeX Math Rendering:** Display complex mathematical formulas seamlessly.
-- **📱 Responsive Design:** A clean and modern UI that looks great on any device.
-- **🚀 Built with a Modern Stack:** Leveraging the best of the React ecosystem for a fast and reliable experience.
+- **💰 No Subscription, Pay-as-you-go:** Bring your own Google Gemini API key and only pay for what you use. No monthly fees. (Support for more providers coming soon!)
+- **🔒 100% Private & Local:** Your data, your device. All conversations are stored in your browser's local storage, ensuring complete privacy. No backend, no cloud.
+- **🎨 Simple & Clean UI:** A minimalist design with intuitive controls for adjusting AI behavior, like temperature and response style.
+- **📝 Rich Text Formatting:** Full support for Markdown and LaTeX to write and render messages, from formatted text to complex mathematical equations.
+- **💻 Optimized for Developers:** Share code snippets with beautiful and accurate syntax highlighting.
+- **🚀 Modern Tech Stack:** Built with React, Vite, and TailwindCSS for a fast, reliable, and cutting-edge experience.
 
 ## 🖼️ Product & Screenshots
 
