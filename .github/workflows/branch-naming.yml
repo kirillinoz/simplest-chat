@@ -1,10 +1,7 @@
-# This workflow enforces that new branches start with 'feature/' or 'fix/'
 name: 'Branch Naming Rules'
 
 on:
-  # Triggers the workflow on any push event
   push:
-    # We ignore pushes to the main branch itself
     branches-ignore:
       - main
 
@@ -19,14 +16,15 @@ jobs:
       - name: 'Check branch name'
         run: |
           BRANCH_NAME="${{ steps.get_branch.outputs.branch_name }}"
-          
-          # This regex enforces 'feature/*' or 'fix/*'
-          REGEX="^(feature|fix)\/.+$"
+
+          # Enhanced regex for conventional commit types
+          REGEX="^(feature|fix|docs|style|refactor|perf|test|chore)\/.+$"
 
           if [[ ! $BRANCH_NAME =~ $REGEX ]]; then
             echo "Branch name '$BRANCH_NAME' is not valid."
-            echo "It must start with 'feature/' or 'fix/' followed by more characters."
+            echo "It must start with one of: feature/, fix/, docs/, style/, refactor/, perf/, test/, chore/"
+            echo "followed by a descriptive name."
             exit 1
           fi
-          
+
           echo "Branch name '$BRANCH_NAME' is valid."

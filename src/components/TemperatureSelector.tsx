@@ -1,47 +1,14 @@
-import { useStore } from "@tanstack/react-store";
-import { chatStore, chatActions } from "../store/chatStore";
+import { useStore } from '@tanstack/react-store';
+import { chatStore, chatActions } from '../store/chatStore';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
-import { Zap } from "lucide-react";
-
-type TemperatureOption = {
-  value: number;
-  label: string;
-  description: string;
-};
-
-const TEMPERATURE_OPTIONS: TemperatureOption[] = [
-  {
-    value: 0.1,
-    label: "Precise",
-    description: "Most deterministic and focused",
-  },
-  {
-    value: 0.3,
-    label: "Focused",
-    description: "Reliable with minimal variation",
-  },
-  {
-    value: 0.5,
-    label: "Balanced",
-    description: "Good mix of consistency and variety",
-  },
-  {
-    value: 0.7,
-    label: "Creative",
-    description: "More diverse and original",
-  },
-  {
-    value: 0.9,
-    label: "Surprising",
-    description: "Highly creative and unexpected",
-  },
-];
+} from './ui/select';
+import { Zap } from 'lucide-react';
+import { TEMPERATURE_OPTIONS } from '@/types/chat';
 
 export const TemperatureSelector = () => {
   const { settings } = useStore(chatStore);
@@ -71,7 +38,7 @@ export const TemperatureSelector = () => {
         value={currentOption.value.toString()}
         onValueChange={handleTemperatureChange}
       >
-        <SelectTrigger className="w-28 h-8 text-sm border-theme-border">
+        <SelectTrigger className="w-32 h-8 text-sm border-theme-border">
           <SelectValue>{currentOption.label}</SelectValue>
         </SelectTrigger>
         <SelectContent className="bg-theme-background border-theme-border">

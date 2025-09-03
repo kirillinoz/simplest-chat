@@ -15,7 +15,7 @@ interface FileReference {
 }
 
 class FileStorageManager {
-  private dbName = "minigem-files";
+  private dbName = 'minigem-files';
   private version = 1;
   private db: IDBDatabase | null = null;
 
@@ -31,9 +31,9 @@ class FileStorageManager {
 
       request.onupgradeneeded = () => {
         const db = request.result;
-        if (!db.objectStoreNames.contains("files")) {
-          const store = db.createObjectStore("files", { keyPath: "id" });
-          store.createIndex("timestamp", "timestamp", { unique: false });
+        if (!db.objectStoreNames.contains('files')) {
+          const store = db.createObjectStore('files', { keyPath: 'id' });
+          store.createIndex('timestamp', 'timestamp', { unique: false });
         }
       };
     });
@@ -55,8 +55,8 @@ class FileStorageManager {
     };
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(["files"], "readwrite");
-      const store = transaction.objectStore("files");
+      const transaction = this.db!.transaction(['files'], 'readwrite');
+      const store = transaction.objectStore('files');
       const request = store.add(storedFile);
 
       request.onsuccess = () => {
@@ -76,8 +76,8 @@ class FileStorageManager {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(["files"], "readonly");
-      const store = transaction.objectStore("files");
+      const transaction = this.db!.transaction(['files'], 'readonly');
+      const store = transaction.objectStore('files');
       const request = store.get(id);
 
       request.onsuccess = () => {
@@ -100,8 +100,8 @@ class FileStorageManager {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(["files"], "readwrite");
-      const store = transaction.objectStore("files");
+      const transaction = this.db!.transaction(['files'], 'readwrite');
+      const store = transaction.objectStore('files');
       const request = store.delete(id);
 
       request.onsuccess = () => resolve();
@@ -110,7 +110,7 @@ class FileStorageManager {
   }
 
   async getStorageInfo(): Promise<{ used: number; available: number }> {
-    if ("storage" in navigator && "estimate" in navigator.storage) {
+    if ('storage' in navigator && 'estimate' in navigator.storage) {
       const estimate = await navigator.storage.estimate();
       return {
         used: estimate.usage || 0,
@@ -126,9 +126,9 @@ class FileStorageManager {
     const cutoff = Date.now() - maxAge;
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(["files"], "readwrite");
-      const store = transaction.objectStore("files");
-      const index = store.index("timestamp");
+      const transaction = this.db!.transaction(['files'], 'readwrite');
+      const store = transaction.objectStore('files');
+      const index = store.index('timestamp');
       const request = index.openCursor(IDBKeyRange.upperBound(cutoff));
 
       request.onsuccess = () => {
@@ -142,6 +142,25 @@ class FileStorageManager {
       };
 
       request.onerror = () => reject(request.error);
+    });
+  }
+
+  async clearAll(): Promise<void> {
+    if (!this.db) await this.init();
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['files'], 'readwrite');
+      const store = transaction.objectStore('files');
+      const request = store.clear();
+
+      request.onsuccess = () => {
+        console.log('IndexedDB cleared successfully');
+        resolve();
+      };
+      request.onerror = () => {
+        console.error('Error clearing IndexedDB:', request.error);
+        reject(request.error);
+      };
     });
   }
 }

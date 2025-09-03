@@ -1,27 +1,27 @@
-import { useState } from "react";
-import { Key } from "lucide-react";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import { useState } from 'react';
+import { Key } from 'lucide-react';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "./ui/card";
+} from './ui/card';
 
 interface ApiKeySetupProps {
   onApiKeySet: (apiKey: string) => void;
 }
 
 export const ApiKeySetup = ({ onApiKeySet }: ApiKeySetupProps) => {
-  const [apiKey, setApiKey] = useState("");
-  const [error, setError] = useState("");
+  const [apiKey, setApiKey] = useState('');
+  const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!apiKey.trim()) {
-      setError("Please enter your Gemini API key");
+      setError('Please enter your Gemini API key');
       return;
     }
     onApiKeySet(apiKey.trim());
@@ -56,7 +56,7 @@ export const ApiKeySetup = ({ onApiKeySet }: ApiKeySetupProps) => {
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="Enter your Gemini API key"
-                className={error ? "border-red-500" : "border-theme-border"}
+                className={error ? 'border-red-500' : 'border-theme-border'}
               />
               {error && <p className="text-red-500 text-sm">{error}</p>}
             </div>
@@ -68,7 +68,7 @@ export const ApiKeySetup = ({ onApiKeySet }: ApiKeySetupProps) => {
 
           <div className="mt-6 text-center text-xs text-theme-muted-foreground">
             <p>
-              Get your API key from{" "}
+              Get your API key from{' '}
               <a
                 href="https://makersuite.google.com/app/apikey"
                 target="_blank"

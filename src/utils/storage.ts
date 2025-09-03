@@ -1,10 +1,10 @@
-import type { Chat, AppSettings, ThinkingBudget } from "../types/chat";
-import { GEMINI_MODELS } from "../types/chat";
+import type { Chat, AppSettings, ThinkingBudget } from '../types/chat';
+import { GEMINI_MODELS } from '../types/chat';
 
 const STORAGE_KEYS = {
-  CHATS: "gemini-chats",
-  SETTINGS: "gemini-settings",
-  CURRENT_CHAT: "current-chat-id",
+  CHATS: 'gemini-chats',
+  SETTINGS: 'gemini-settings',
+  CURRENT_CHAT: 'current-chat-id',
 };
 
 export const storage = {
@@ -47,11 +47,11 @@ export const storage = {
     });
 
     return {
-      selectedModel: "gemini-2.5-flash",
+      selectedModel: 'gemini-2.5-flash',
       thinkingBudgets: defaultThinkingBudgets,
       temperature: 0.7, // Default temperature
-      settingsMode: "simple", // Default to simple mode
-      responseStyle: "balanced", // Default response style
+      settingsMode: 'simple', // Default to simple mode
+      responseStyle: 'balanced', // Default response style
       ...parsed,
     };
   },

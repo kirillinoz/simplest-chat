@@ -1,6 +1,6 @@
-import { GoogleGenAI, createPartFromUri } from "@google/genai";
-import type { GeminiModel, ThinkingBudget } from "../types/chat";
-import { GEMINI_MODELS } from "../types/chat";
+import { GoogleGenAI, createPartFromUri } from '@google/genai';
+import type { GeminiModel, ThinkingBudget } from '../types/chat';
+import { GEMINI_MODELS } from '../types/chat';
 
 let genAI: GoogleGenAI | null = null;
 
@@ -10,20 +10,20 @@ export const initializeGemini = (apiKey: string) => {
 
 // Helper function to check if file is PDF
 const isPDF = (file: File): boolean => {
-  return file.type === "application/pdf";
+  return file.type === 'application/pdf';
 };
 
 // Helper function to check if file is an image
 const isImage = (file: File): boolean => {
   return (
-    file.type.startsWith("image/") &&
+    file.type.startsWith('image/') &&
     [
-      "image/png",
-      "image/jpeg",
-      "image/jpg",
-      "image/webp",
-      "image/heic",
-      "image/heif",
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
+      'image/webp',
+      'image/heic',
+      'image/heif',
     ].includes(file.type)
   );
 };
@@ -36,7 +36,7 @@ const fileToBase64 = (file: File): Promise<string> => {
     reader.onload = () => {
       const result = reader.result as string;
       // Remove the data:image/type;base64, prefix
-      const base64 = result.split(",")[1];
+      const base64 = result.split(',')[1];
       resolve(base64);
     };
     reader.onerror = (error) => reject(error);
@@ -52,15 +52,15 @@ const getThinkingBudgetValue = (
   const { max } = modelInfo.thinkingRange;
 
   switch (budget) {
-    case "dynamic":
+    case 'dynamic':
       return -1;
-    case "none":
+    case 'none':
       return 0;
-    case "low":
+    case 'low':
       return Math.floor(max / 3);
-    case "medium":
+    case 'medium':
       return Math.floor((max * 2) / 3);
-    case "high":
+    case 'high':
       return max;
     default:
       return -1; // Default to dynamic
@@ -71,15 +71,15 @@ export const sendMessageToGemini = async (
   message: string,
   conversationHistory: any[] = [],
   attachments: File[] = [],
-  modelName: GeminiModel = "gemini-2.5-flash"
+  modelName: GeminiModel = 'gemini-2.5-flash'
 ) => {
   if (!genAI) {
-    throw new Error("Gemini API not initialized");
+    throw new Error('Gemini API not initialized');
   }
 
-  console.log("GenAI object:", genAI);
-  console.log("Available methods:", Object.getOwnPropertyNames(genAI));
-  console.log("Conversation history length:", conversationHistory.length);
+  console.log('GenAI object:', genAI);
+  console.log('Available methods:', Object.getOwnPropertyNames(genAI));
+  console.log('Conversation history length:', conversationHistory.length);
 
   try {
     // Build the contents array starting with conversation history
@@ -88,7 +88,7 @@ export const sendMessageToGemini = async (
     // Add conversation history if it exists
     if (conversationHistory.length > 0) {
       contents = [...conversationHistory];
-      console.log("Added conversation history:", conversationHistory);
+      console.log('Added conversation history:', conversationHistory);
     }
 
     // Prepare the current message content parts
@@ -96,7 +96,7 @@ export const sendMessageToGemini = async (
 
     // Process attachments
     if (attachments.length > 0) {
-      console.log("Processing attachments...");
+      console.log('Processing attachments...');
 
       for (const file of attachments) {
         if (isPDF(file)) {
@@ -110,7 +110,7 @@ export const sendMessageToGemini = async (
             },
           });
 
-          console.log("Uploaded PDF file:", uploadedFile);
+          console.log('Uploaded PDF file:', uploadedFile);
 
           if (!uploadedFile.name) {
             throw new Error(`File upload failed for ${file.name}`);
@@ -118,17 +118,17 @@ export const sendMessageToGemini = async (
 
           // Wait for processing
           let getFile = await genAI.files.get({ name: uploadedFile.name });
-          console.log("Initial PDF file state:", getFile);
+          console.log('Initial PDF file state:', getFile);
 
-          while (getFile.state === "PROCESSING") {
+          while (getFile.state === 'PROCESSING') {
             console.log(`PDF ${file.name} is processing...`);
             await new Promise((resolve) => setTimeout(resolve, 2000));
             getFile = await genAI.files.get({ name: uploadedFile.name });
           }
 
-          console.log("Final PDF file state:", getFile);
+          console.log('Final PDF file state:', getFile);
 
-          if (getFile.state === "FAILED") {
+          if (getFile.state === 'FAILED') {
             throw new Error(`PDF processing failed for ${file.name}`);
           }
 
@@ -139,7 +139,7 @@ export const sendMessageToGemini = async (
               getFile.mimeType
             );
             currentMessageParts.push(fileContent);
-            console.log("Added PDF to content:", fileContent);
+            console.log('Added PDF to content:', fileContent);
           }
         } else if (isImage(file)) {
           console.log(`Processing image: ${file.name}`);
@@ -158,7 +158,7 @@ export const sendMessageToGemini = async (
               },
             });
 
-            console.log("Uploaded image file:", uploadedFile);
+            console.log('Uploaded image file:', uploadedFile);
 
             if (!uploadedFile.name) {
               throw new Error(`Image upload failed for ${file.name}`);
@@ -168,14 +168,14 @@ export const sendMessageToGemini = async (
             let getFile = await genAI.files.get({ name: uploadedFile.name });
             let attempts = 0;
 
-            while (getFile.state === "PROCESSING" && attempts < 10) {
+            while (getFile.state === 'PROCESSING' && attempts < 10) {
               console.log(`Image ${file.name} is processing...`);
               await new Promise((resolve) => setTimeout(resolve, 1000));
               getFile = await genAI.files.get({ name: uploadedFile.name });
               attempts++;
             }
 
-            if (getFile.state === "FAILED") {
+            if (getFile.state === 'FAILED') {
               throw new Error(`Image processing failed for ${file.name}`);
             }
 
@@ -186,7 +186,7 @@ export const sendMessageToGemini = async (
                 getFile.mimeType
               );
               currentMessageParts.push(fileContent);
-              console.log("Added image via File API to content:", fileContent);
+              console.log('Added image via File API to content:', fileContent);
             }
           } else {
             console.log(`Using inline data for image: ${file.name}`);
@@ -200,7 +200,7 @@ export const sendMessageToGemini = async (
               },
             };
             currentMessageParts.push(imageContent);
-            console.log("Added image via inline data to content");
+            console.log('Added image via inline data to content');
           }
         }
       }
@@ -208,11 +208,11 @@ export const sendMessageToGemini = async (
 
     // Add the current user message (with any attachments) to contents
     contents.push({
-      role: "user",
+      role: 'user',
       parts: currentMessageParts,
     });
 
-    console.log("Final contents for API:", contents);
+    console.log('Final contents for API:', contents);
 
     // Make the API call with the complete conversation
     const response = await genAI.models.generateContent({
@@ -220,10 +220,10 @@ export const sendMessageToGemini = async (
       contents: contents,
     });
 
-    console.log("API Response received:", response);
+    console.log('API Response received:', response);
     return response.text || "Sorry, I couldn't generate a response.";
   } catch (error) {
-    console.error("Error calling Gemini API:", error);
+    console.error('Error calling Gemini API:', error);
     throw error;
   }
 };
@@ -232,13 +232,13 @@ export const sendMessageToGeminiStream = async (
   message: string,
   conversationHistory: any[] = [],
   attachments: File[] = [],
-  modelName: GeminiModel = "gemini-2.5-flash",
-  thinkingBudget: ThinkingBudget = "dynamic",
+  modelName: GeminiModel = 'gemini-2.5-flash',
+  thinkingBudget: ThinkingBudget = 'dynamic',
   temperature: number = 0.7,
   onChunk: (chunk: string) => void
 ) => {
   if (!genAI) {
-    throw new Error("Gemini API not initialized");
+    throw new Error('Gemini API not initialized');
   }
 
   try {
@@ -267,12 +267,12 @@ export const sendMessageToGeminiStream = async (
           }
 
           let getFile = await genAI.files.get({ name: uploadedFile.name });
-          while (getFile.state === "PROCESSING") {
+          while (getFile.state === 'PROCESSING') {
             await new Promise((resolve) => setTimeout(resolve, 2000));
             getFile = await genAI.files.get({ name: uploadedFile.name });
           }
 
-          if (getFile.state === "FAILED") {
+          if (getFile.state === 'FAILED') {
             throw new Error(`PDF processing failed for ${file.name}`);
           }
 
@@ -303,13 +303,13 @@ export const sendMessageToGeminiStream = async (
             let getFile = await genAI.files.get({ name: uploadedFile.name });
             let attempts = 0;
 
-            while (getFile.state === "PROCESSING" && attempts < 10) {
+            while (getFile.state === 'PROCESSING' && attempts < 10) {
               await new Promise((resolve) => setTimeout(resolve, 1000));
               getFile = await genAI.files.get({ name: uploadedFile.name });
               attempts++;
             }
 
-            if (getFile.state === "FAILED") {
+            if (getFile.state === 'FAILED') {
               throw new Error(`Image processing failed for ${file.name}`);
             }
 
@@ -336,7 +336,7 @@ export const sendMessageToGeminiStream = async (
     }
 
     contents.push({
-      role: "user",
+      role: 'user',
       parts: currentMessageParts,
     });
 
@@ -360,11 +360,11 @@ export const sendMessageToGeminiStream = async (
     }
 
     console.log(
-      "Using thinking budget:",
+      'Using thinking budget:',
       thinkingBudget,
-      "->",
+      '->',
       thinkingBudgetValue,
-      "and temperature:",
+      'and temperature:',
       temperature
     );
 
@@ -375,16 +375,16 @@ export const sendMessageToGeminiStream = async (
       config: config,
     });
 
-    let fullResponse = "";
+    let fullResponse = '';
     for await (const chunk of response) {
-      const chunkText = chunk.text || "";
+      const chunkText = chunk.text || '';
       fullResponse += chunkText;
       onChunk(chunkText);
     }
 
     return fullResponse;
   } catch (error) {
-    console.error("Error calling Gemini streaming API:", error);
+    console.error('Error calling Gemini streaming API:', error);
     throw error;
   }
 };

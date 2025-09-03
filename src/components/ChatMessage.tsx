@@ -1,30 +1,80 @@
-import { useState, useEffect } from "react";
-import type { Message } from "../types/chat";
-import { User, Bot, Image as ImageIcon, FileText } from "lucide-react";
-import { Card } from "./ui/card";
-import { GEMINI_MODELS } from "../types/chat";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import rehypeHighlight from "rehype-highlight";
-import rehypeKatex from "rehype-katex";
-import "katex/dist/katex.min.css";
-import type { FileReference } from "../utils/fileStorage";
-import { fileStorage } from "../utils/fileStorage";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useState, useEffect } from 'react';
+import type { GeminiModel, Message, ThinkingBudget } from '../types/chat';
+import {
+  User,
+  Bot,
+  Image as ImageIcon,
+  FileText,
+  Copy,
+  GitBranch,
+  Trash2,
+  RotateCcw,
+  Clock,
+  Brain,
+  Zap,
+  Palette,
+  Component,
+} from 'lucide-react';
+import { Card } from './ui/card';
+import {
+  GEMINI_MODELS,
+  TEMPERATURE_OPTIONS,
+  THINKING_BUDGETS,
+  RESPONSE_STYLES,
+} from '../types/chat';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeHighlight from 'rehype-highlight';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
+import type { FileReference } from '../utils/fileStorage';
+import { fileStorage } from '../utils/fileStorage';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Button } from './ui/button';
+import { RetryDialog } from './RetryDialog';
+import { useStore } from '@tanstack/react-store';
+import { chatStore } from '@/store/chatStore';
 
 interface ChatMessageProps {
   message: Message;
   isStreaming?: boolean;
+  onCopy?: (message: Message) => void;
+  onBranch?: (message: Message) => void;
+  onRetry?: (
+    message: Message,
+    retrySettings: {
+      model: GeminiModel;
+      thinkingBudget: ThinkingBudget;
+      temperature: number;
+    }
+  ) => void;
+  onDelete?: (message: Message) => void;
+  currentSettings?: {
+    model: GeminiModel;
+    thinkingBudget: ThinkingBudget;
+    temperature: number;
+  };
+  isRetrying?: boolean;
 }
 
 export const ChatMessage = ({
   message,
   isStreaming = false,
+  onCopy,
+  onBranch,
+  onRetry,
+  onDelete,
+  currentSettings,
+  isRetrying = false,
 }: ChatMessageProps) => {
   const { theme } = useTheme();
+  const { settings } = useStore(chatStore);
   const [loadedFiles, setLoadedFiles] = useState<Map<string, File>>(new Map());
   const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set());
+  const [showActions, setShowActions] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+  const [showRetryDialog, setShowRetryDialog] = useState(false);
 
   // Dynamically load highlight.js theme based on current theme
   useEffect(() => {
@@ -36,12 +86,12 @@ export const ChatMessage = ({
       existingLinks.forEach((link) => link.remove());
 
       // Create new link element
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
       link.href =
-        theme === "light"
-          ? "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css"
-          : "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css";
+        theme === 'light'
+          ? 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css'
+          : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css';
 
       document.head.appendChild(link);
     };
@@ -49,9 +99,120 @@ export const ChatMessage = ({
     loadHighlightTheme();
   }, [theme]);
 
+  const formatUserTimestamp = (timestamp: Date) => {
+    const now = new Date();
+    const messageDate = new Date(timestamp);
+    const diffInDays = Math.floor(
+      (now.getTime() - messageDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    if (diffInDays === 0) {
+      // Today - show time only
+      return messageDate.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } else if (diffInDays < 7) {
+      // Within a week - show day of week and time
+      return messageDate.toLocaleDateString([], {
+        weekday: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } else {
+      // Older than a week - show full date and time
+      return messageDate.toLocaleDateString([], {
+        month: 'short',
+        day: 'numeric',
+        year:
+          messageDate.getFullYear() !== now.getFullYear()
+            ? 'numeric'
+            : undefined,
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    }
+  };
+
   const getModelDisplayName = (model?: string) => {
     if (!model) return null;
     return GEMINI_MODELS[model as keyof typeof GEMINI_MODELS]?.name || model;
+  };
+
+  const getResponseStyleFromSettings = (
+    thinkingBudget?: ThinkingBudget,
+    temperature?: number
+  ) => {
+    if (!thinkingBudget || typeof temperature !== 'number') return null;
+
+    // Find matching response style
+    const matchingStyle = Object.entries(RESPONSE_STYLES).find(
+      ([_, style]) =>
+        style.thinkingBudget === thinkingBudget &&
+        Math.abs(style.temperature - temperature) < 0.05 // Allow small floating point differences
+    );
+
+    return matchingStyle ? matchingStyle[1].name : null;
+  };
+
+  const getThinkingBudgetDisplayName = (budget?: ThinkingBudget) => {
+    if (!budget) return null;
+    return THINKING_BUDGETS[budget]?.name || budget;
+  };
+
+  const getTemperatureDisplayName = (temp?: number) => {
+    if (typeof temp !== 'number') return null;
+
+    // Find exact match in temperature options
+    const option = TEMPERATURE_OPTIONS.find(
+      (opt) => Math.abs(opt.value - temp) < 0.05
+    );
+    return option?.label || temp.toString();
+  };
+
+  const formatResponseTime = (responseTimeMs?: number) => {
+    if (typeof responseTimeMs !== 'number') return null;
+
+    if (responseTimeMs < 1000) {
+      return `${Math.round(responseTimeMs)}ms`;
+    } else if (responseTimeMs < 60000) {
+      return `${Math.round(responseTimeMs / 1000)}s`;
+    } else {
+      const minutes = Math.floor(responseTimeMs / 60000);
+      const seconds = Math.round((responseTimeMs % 60000) / 1000);
+      return `${minutes}m ${seconds}s`;
+    }
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+      onCopy?.(message);
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+    }
+  };
+
+  const handleBranch = () => {
+    onBranch?.(message);
+  };
+
+  const handleRetryClick = () => {
+    setShowRetryDialog(true);
+  };
+
+  const handleRetryConfirm = (settings: {
+    model: GeminiModel;
+    thinkingBudget: ThinkingBudget;
+    temperature: number;
+  }) => {
+    onRetry?.(message, settings);
+  };
+
+  const handleDelete = () => {
+    onDelete?.(message);
   };
 
   useEffect(() => {
@@ -85,7 +246,7 @@ export const ChatMessage = ({
           const ref = filesToLoad[index];
           stillLoading.delete(ref.id);
 
-          if (result.status === "fulfilled" && result.value.file) {
+          if (result.status === 'fulfilled' && result.value.file) {
             newFiles.set(ref.id, result.value.file);
           }
         });
@@ -93,7 +254,7 @@ export const ChatMessage = ({
         setLoadedFiles(newFiles);
         setLoadingFiles(stillLoading);
       } catch (error) {
-        console.error("Failed to load files:", error);
+        console.error('Failed to load files:', error);
         setLoadingFiles((prev) => {
           const newSet = new Set(prev);
           filesToLoad.forEach((f) => newSet.delete(f.id));
@@ -110,10 +271,10 @@ export const ChatMessage = ({
   };
 
   const isImage = (ref: FileReference): boolean => {
-    if (!ref || !ref.type || typeof ref.type !== "string") {
+    if (!ref || !ref.type || typeof ref.type !== 'string') {
       return false;
     }
-    return ref.type.startsWith("image/");
+    return ref.type.startsWith('image/');
   };
 
   const canShowImagePreview = (ref: FileReference): boolean => {
@@ -122,7 +283,7 @@ export const ChatMessage = ({
   };
 
   const isValidFileReference = (ref: any): ref is FileReference => {
-    return ref && typeof ref === "object" && ref.id && ref.name && ref.type;
+    return ref && typeof ref === 'object' && ref.id && ref.name && ref.type;
   };
 
   // Filter out invalid attachments
@@ -130,250 +291,412 @@ export const ChatMessage = ({
     message.attachments?.filter(isValidFileReference) || [];
 
   return (
-    <div
-      className={`flex gap-4 p-6 ${
-        message.role === "user" ? "user-message-bg" : "assistant-message-bg"
-      }`}
-    >
+    <>
       <div
-        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-          message.role === "user"
-            ? "bg-primary text-primary-foreground"
-            : "bg-theme-muted text-theme-foreground"
+        className={`group flex gap-4 p-6 hover:bg-theme-muted/20 transition-colors ${
+          message.role === 'user' ? 'user-message-bg' : 'assistant-message-bg'
         }`}
+        onMouseEnter={() => setShowActions(true)}
+        onMouseLeave={() => setShowActions(false)}
       >
-        {message.role === "user" ? <User size={16} /> : <Bot size={16} />}
-      </div>
+        <div
+          className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+            message.role === 'user'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-theme-muted text-theme-foreground'
+          }`}
+        >
+          {message.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+        </div>
 
-      <div className="flex-1 space-y-3">
-        {/* Attachments */}
-        {message.role === "user" && validAttachments.length > 0 && (
-          <div className="space-y-2">
-            {/* Image previews */}
-            {validAttachments.filter(canShowImagePreview).length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {validAttachments.filter(canShowImagePreview).map((ref) => {
-                  const file = getFileFromReference(ref);
-                  if (!file) return null;
+        <div className="flex-1 space-y-3">
+          {/* Attachments */}
+          {message.role === 'user' && validAttachments.length > 0 && (
+            <div className="space-y-2">
+              {/* Image previews */}
+              {validAttachments.filter(canShowImagePreview).length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {validAttachments.filter(canShowImagePreview).map((ref) => {
+                    const file = getFileFromReference(ref);
+                    if (!file) return null;
 
-                  try {
-                    return (
-                      <div key={`image-${ref.id}`} className="relative">
-                        <img
-                          src={URL.createObjectURL(file)}
-                          alt={ref.name}
-                          className="max-w-xs max-h-48 object-contain rounded-lg border border-theme-border shadow-sm"
-                          onLoad={(e) => {
-                            const img = e.target as HTMLImageElement;
-                            URL.revokeObjectURL(img.src);
-                          }}
-                          onError={(e) => {
-                            const img = e.target as HTMLImageElement;
-                            URL.revokeObjectURL(img.src);
-                          }}
-                        />
-                        <div className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-1 py-0.5 rounded">
-                          <ImageIcon className="w-3 h-3 inline mr-1" />
-                          {ref.name.length > 20
-                            ? ref.name.substring(0, 20) + "..."
-                            : ref.name}
+                    try {
+                      return (
+                        <div key={`image-${ref.id}`} className="relative">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={ref.name}
+                            className="max-w-xs max-h-48 object-contain rounded-lg border border-theme-border shadow-sm"
+                            onLoad={(e) => {
+                              const img = e.target as HTMLImageElement;
+                              URL.revokeObjectURL(img.src);
+                            }}
+                            onError={(e) => {
+                              const img = e.target as HTMLImageElement;
+                              URL.revokeObjectURL(img.src);
+                            }}
+                          />
+                          <div className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-1 py-0.5 rounded">
+                            <ImageIcon className="w-3 h-3 inline mr-1" />
+                            {ref.name.length > 20
+                              ? ref.name.substring(0, 20) + '...'
+                              : ref.name}
+                          </div>
                         </div>
+                      );
+                    } catch (error) {
+                      console.warn(
+                        'Could not create object URL for image:',
+                        error
+                      );
+                      return null;
+                    }
+                  })}
+                </div>
+              )}
+
+              {/* File attachments */}
+              <div className="flex flex-wrap gap-2">
+                {validAttachments.map((ref) => {
+                  if (canShowImagePreview(ref)) return null;
+
+                  const isLoading = loadingFiles.has(ref.id);
+
+                  return (
+                    <Card
+                      key={`file-${ref.id}`}
+                      className={`px-3 py-2 bg-theme-background border-theme-border`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {isLoading ? (
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-theme-muted-foreground border-t-theme-foreground"></div>
+                        ) : isImage(ref) ? (
+                          <ImageIcon className="h-4 w-4 text-chart-2" />
+                        ) : (
+                          <FileText className="h-4 w-4 text-chart-1" />
+                        )}
+                        <span className="text-sm text-theme-foreground">
+                          {ref.name}
+                        </span>
+                        {isImage(ref) &&
+                          !canShowImagePreview(ref) &&
+                          !isLoading && (
+                            <span className="text-xs text-theme-muted-foreground">
+                              (Preview unavailable)
+                            </span>
+                          )}
                       </div>
-                    );
-                  } catch (error) {
-                    console.warn(
-                      "Could not create object URL for image:",
-                      error
-                    );
-                    return null;
-                  }
+                    </Card>
+                  );
                 })}
               </div>
-            )}
-
-            {/* File attachments */}
-            <div className="flex flex-wrap gap-2">
-              {validAttachments.map((ref) => {
-                if (canShowImagePreview(ref)) return null;
-
-                const isLoading = loadingFiles.has(ref.id);
-
-                return (
-                  <Card
-                    key={`file-${ref.id}`}
-                    className={`px-3 py-2 bg-theme-background border-theme-border`}
-                  >
-                    <div className="flex items-center gap-2">
-                      {isLoading ? (
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-theme-muted-foreground border-t-theme-foreground"></div>
-                      ) : isImage(ref) ? (
-                        <ImageIcon className="h-4 w-4 text-chart-2" />
-                      ) : (
-                        <FileText className="h-4 w-4 text-chart-1" />
-                      )}
-                      <span className="text-sm text-theme-foreground">
-                        {ref.name}
-                      </span>
-                      {isImage(ref) &&
-                        !canShowImagePreview(ref) &&
-                        !isLoading && (
-                          <span className="text-xs text-theme-muted-foreground">
-                            (Preview unavailable)
-                          </span>
-                        )}
-                    </div>
-                  </Card>
-                );
-              })}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Message content */}
-        <div className="prose prose-sm max-w-none">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm, remarkMath]}
-            rehypePlugins={[rehypeHighlight, rehypeKatex]}
-            components={{
-              h1: ({ children }) => (
-                <h1 className="text-xl font-bold text-theme-foreground mt-6 mb-4 first:mt-0">
-                  {children}
-                </h1>
-              ),
-              h2: ({ children }) => (
-                <h2 className="text-lg font-semibold text-theme-foreground mt-5 mb-3 first:mt-0">
-                  {children}
-                </h2>
-              ),
-              h3: ({ children }) => (
-                <h3 className="text-base font-semibold text-theme-foreground mt-4 mb-2 first:mt-0">
-                  {children}
-                </h3>
-              ),
-              p: ({ children }) => (
-                <p className="text-theme-foreground leading-relaxed mb-4 last:mb-0">
-                  {children}
-                </p>
-              ),
-              ul: ({ children }) => (
-                <ul className="list-disc pl-6 mb-4 space-y-1">{children}</ul>
-              ),
-              ol: ({ children }) => (
-                <ol className="list-decimal pl-6 mb-4 space-y-1">{children}</ol>
-              ),
-              li: ({ children }) => (
-                <li className="text-theme-foreground my-3">{children}</li>
-              ),
-              blockquote: ({ children }) => (
-                <blockquote className="border-l-4 border-theme-border pl-4 py-2 my-4 bg-theme-muted/50 italic">
-                  {children}
-                </blockquote>
-              ),
-              code: (props: any) => {
-                const { inline, children, className, ...rest } = props;
-                if (inline) {
+          {/* Message content */}
+          <div className="prose prose-sm max-w-none">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm, remarkMath]}
+              rehypePlugins={[rehypeHighlight, rehypeKatex]}
+              components={{
+                h1: ({ children }) => (
+                  <h1 className="text-xl font-bold text-theme-foreground mt-6 mb-4 first:mt-0">
+                    {children}
+                  </h1>
+                ),
+                h2: ({ children }) => (
+                  <h2 className="text-lg font-semibold text-theme-foreground mt-5 mb-3 first:mt-0">
+                    {children}
+                  </h2>
+                ),
+                h3: ({ children }) => (
+                  <h3 className="text-base font-semibold text-theme-foreground mt-4 mb-2 first:mt-0">
+                    {children}
+                  </h3>
+                ),
+                p: ({ children }) => (
+                  <p className="text-theme-foreground leading-relaxed mb-4 last:mb-0">
+                    {children}
+                  </p>
+                ),
+                ul: ({ children }) => (
+                  <ul className="list-disc pl-6 mb-4 space-y-1">{children}</ul>
+                ),
+                ol: ({ children }) => (
+                  <ol className="list-decimal pl-6 mb-4 space-y-1">
+                    {children}
+                  </ol>
+                ),
+                li: ({ children }) => (
+                  <li className="text-theme-foreground my-3">{children}</li>
+                ),
+                blockquote: ({ children }) => (
+                  <blockquote className="border-l-4 border-theme-border pl-4 py-2 my-4 bg-theme-muted/50 italic">
+                    {children}
+                  </blockquote>
+                ),
+                code: (props: any) => {
+                  const { inline, children, className, ...rest } = props;
+                  if (inline) {
+                    return (
+                      <code
+                        className="bg-theme-muted text-theme-foreground px-1.5 py-0.5 rounded text-sm font-mono"
+                        {...rest}
+                      >
+                        {children}
+                      </code>
+                    );
+                  }
                   return (
                     <code
-                      className="bg-theme-muted text-theme-foreground px-1.5 py-0.5 rounded text-sm font-mono"
+                      className={`${className || ''} block bg-theme-background text-theme-foreground p-4 rounded-lg overflow-x-auto text-sm font-mono my-3`}
                       {...rest}
                     >
                       {children}
                     </code>
                   );
-                }
-                return (
-                  <code
-                    className={`${className || ""} block bg-theme-background text-theme-foreground p-4 rounded-lg overflow-x-auto text-sm font-mono my-3`}
-                    {...rest}
+                },
+                pre: ({ children }) => (
+                  <pre className="bg-theme-background border border-theme-border rounded-lg overflow-hidden mb-4">
+                    {children}
+                  </pre>
+                ),
+                table: ({ children }) => (
+                  <div className="overflow-x-auto mb-4">
+                    <table className="min-w-full border border-theme-border rounded-lg">
+                      {children}
+                    </table>
+                  </div>
+                ),
+                thead: ({ children }) => (
+                  <thead className="bg-theme-muted">{children}</thead>
+                ),
+                th: ({ children }) => (
+                  <th className="border border-theme-border px-4 py-2 text-left font-semibold text-theme-foreground">
+                    {children}
+                  </th>
+                ),
+                td: ({ children }) => (
+                  <td className="border border-theme-border px-4 py-2 text-theme-foreground">
+                    {children}
+                  </td>
+                ),
+                a: ({ children, href }) => (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-chart-1 hover:text-chart-1/80 underline"
                   >
                     {children}
-                  </code>
-                );
-              },
-              pre: ({ children }) => (
-                <pre className="bg-theme-background border border-theme-border rounded-lg overflow-hidden mb-4">
-                  {children}
-                </pre>
-              ),
-              table: ({ children }) => (
-                <div className="overflow-x-auto mb-4">
-                  <table className="min-w-full border border-theme-border rounded-lg">
+                  </a>
+                ),
+                strong: ({ children }) => (
+                  <strong className="font-semibold text-theme-foreground">
                     {children}
-                  </table>
-                </div>
-              ),
-              thead: ({ children }) => (
-                <thead className="bg-theme-muted">{children}</thead>
-              ),
-              th: ({ children }) => (
-                <th className="border border-theme-border px-4 py-2 text-left font-semibold text-theme-foreground">
-                  {children}
-                </th>
-              ),
-              td: ({ children }) => (
-                <td className="border border-theme-border px-4 py-2 text-theme-foreground">
-                  {children}
-                </td>
-              ),
-              a: ({ children, href }) => (
-                <a
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-chart-1 hover:text-chart-1/80 underline"
+                  </strong>
+                ),
+                em: ({ children }) => (
+                  <em className="italic text-theme-foreground">{children}</em>
+                ),
+                hr: () => <hr className="my-3 border-theme-border" />,
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
+
+            {/* Streaming cursor */}
+            {isStreaming && (
+              <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1"></span>
+            )}
+          </div>
+
+          {/* Timestamp and info display */}
+          <div className="text-xs text-theme-muted-foreground flex items-center gap-2 min-h-[32px]">
+            {message.role === 'user' ? (
+              // User messages: show only timestamp and attachments
+              <>
+                <span>{formatUserTimestamp(message.timestamp)}</span>
+                {validAttachments.length > 0 && (
+                  <>
+                    <span>•</span>
+                    <span className="text-xs text-theme-muted-foreground">
+                      {validAttachments.length} attachment
+                      {validAttachments.length > 1 ? 's' : ''}
+                    </span>
+                  </>
+                )}
+              </>
+            ) : (
+              // Assistant messages: show response time, model, and thinking/temperature info
+              <>
+                {/* Response time with clock icon */}
+                {formatResponseTime(message.responseTimeMs) && (
+                  <div className="flex items-center gap-1">
+                    <Clock size={12} />
+                    <span>{formatResponseTime(message.responseTimeMs)}</span>
+                  </div>
+                )}
+                {isStreaming && !message.responseTimeMs && (
+                  <div className="flex items-center gap-1">
+                    <Clock size={12} />
+                    <span>Generating...</span>
+                  </div>
+                )}
+
+                {/* Model info */}
+                {message.model && (
+                  <>
+                    <span>•</span>
+                    <span className="px-2 py-1 rounded text-xs font-medium bg-theme-muted text-theme-foreground flex items-center gap-1">
+                      <Component size={12} />
+                      {getModelDisplayName(message.model)}
+                      {isStreaming && (
+                        <span className="ml-1 animate-pulse">●</span>
+                      )}
+                    </span>
+                  </>
+                )}
+
+                {/* Settings display based on mode */}
+                {(() => {
+                  const responseStyle = getResponseStyleFromSettings(
+                    message.thinkingBudget,
+                    message.temperature
+                  );
+
+                  if (settings.settingsMode === 'simplest' && responseStyle) {
+                    // Simplest mode with matching response style: show response style with palette icon
+                    return (
+                      <>
+                        <span>•</span>
+                        <span className="px-2 py-1 rounded text-xs font-medium bg-chart-2/20 text-chart-2 flex items-center gap-1">
+                          <Palette size={12} />
+                          {responseStyle}
+                        </span>
+                      </>
+                    );
+                  } else {
+                    // Simple mode OR simplest mode with no matching style: show detailed breakdown
+                    return (
+                      <>
+                        {/* Thinking Budget with brain icon */}
+                        {message.thinkingBudget && (
+                          <>
+                            <span>•</span>
+                            <span className="px-2 py-1 rounded text-xs font-medium bg-chart-3/20 text-chart-3 flex items-center gap-1">
+                              <Brain size={12} />
+                              {getThinkingBudgetDisplayName(
+                                message.thinkingBudget
+                              )}
+                            </span>
+                          </>
+                        )}
+
+                        {/* Temperature with lightning icon */}
+                        {typeof message.temperature === 'number' && (
+                          <>
+                            <span>•</span>
+                            <span className="px-2 py-1 rounded text-xs font-medium bg-chart-1/20 text-chart-1 flex items-center gap-1">
+                              <Zap size={12} />
+                              {getTemperatureDisplayName(message.temperature)}
+                            </span>
+                          </>
+                        )}
+                      </>
+                    );
+                  }
+                })()}
+
+                {/* Attachments count */}
+                {validAttachments.length > 0 && (
+                  <>
+                    <span>•</span>
+                    <span className="text-xs text-theme-muted-foreground">
+                      {validAttachments.length} attachment
+                      {validAttachments.length > 1 ? 's' : ''}
+                    </span>
+                  </>
+                )}
+              </>
+            )}
+
+            {/* Action buttons */}
+            {showActions && !isStreaming && (
+              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                {/* Copy button - available for all messages */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCopy}
+                  className="h-8 px-2 text-theme-muted-foreground hover:text-theme-foreground"
+                  title="Copy message"
                 >
-                  {children}
-                </a>
-              ),
-              strong: ({ children }) => (
-                <strong className="font-semibold text-theme-foreground">
-                  {children}
-                </strong>
-              ),
-              em: ({ children }) => (
-                <em className="italic text-theme-foreground">{children}</em>
-              ),
-              hr: () => <hr className="my-3 border-theme-border" />,
-            }}
-          >
-            {message.content}
-          </ReactMarkdown>
+                  <Copy size={14} />
+                  {copySuccess && <span className="ml-1 text-xs">Copied!</span>}
+                </Button>
 
-          {/* Streaming cursor */}
-          {isStreaming && (
-            <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1"></span>
-          )}
-        </div>
+                {/* Branch button - only for assistant messages */}
+                {message.role === 'assistant' && onBranch && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleBranch}
+                    className="h-8 px-2 text-theme-muted-foreground hover:text-theme-foreground"
+                    title="Branch conversation"
+                  >
+                    <GitBranch size={14} />
+                  </Button>
+                )}
 
-        {/* Timestamp and model info */}
-        <div className="text-xs text-theme-muted-foreground flex items-center gap-2">
-          <span>{message.timestamp.toLocaleTimeString()}</span>
-          {message.model && (
-            <>
-              <span>•</span>
-              <span
-                className={`px-2 py-1 rounded text-xs font-medium ${
-                  message.role === "assistant"
-                    ? "bg-theme-muted text-theme-foreground"
-                    : "bg-primary text-primary-foreground"
-                }`}
-              >
-                {getModelDisplayName(message.model)}
-                {isStreaming && <span className="ml-1 animate-pulse">●</span>}
-              </span>
-            </>
-          )}
-          {validAttachments.length > 0 && (
-            <>
-              <span>•</span>
-              <span className="text-xs text-theme-muted-foreground">
-                {validAttachments.length} attachment
-                {validAttachments.length > 1 ? "s" : ""}
-              </span>
-            </>
-          )}
+                {/* Retry button - only for assistant messages */}
+                {message.role === 'assistant' && onRetry && currentSettings && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRetryClick}
+                    disabled={isRetrying}
+                    className="h-8 px-2 text-theme-muted-foreground hover:text-theme-foreground disabled:opacity-50"
+                    title="Retry message with different settings"
+                  >
+                    {isRetrying ? (
+                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    ) : (
+                      <RotateCcw size={14} />
+                    )}
+                  </Button>
+                )}
+
+                {/* Delete button - only for user messages */}
+                {message.role === 'user' && onDelete && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDelete}
+                    className="h-8 px-2 text-theme-muted-foreground hover:text-destructive"
+                    title="Delete message"
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Retry Dialog */}
+      {currentSettings && (
+        <RetryDialog
+          open={showRetryDialog}
+          onOpenChange={setShowRetryDialog}
+          initialModel={currentSettings.model}
+          initialThinkingBudget={currentSettings.thinkingBudget}
+          initialTemperature={currentSettings.temperature}
+          onConfirm={handleRetryConfirm}
+          isRetrying={isRetrying}
+        />
+      )}
+    </>
   );
 };
