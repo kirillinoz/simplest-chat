@@ -1,15 +1,16 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useStore } from "@tanstack/react-store";
-import { chatStore, chatActions } from "../store/chatStore";
-import { ApiKeySetup } from "../components/ApiKeySetup";
-import { Sidebar } from "../components/Sidebar";
-import { ChatMessage } from "../components/ChatMessage";
-import { ChatInput } from "../components/ChatInput";
-import { Button } from "../components/ui/button";
-import { ScrollArea } from "../components/ui/scroll-area";
-import { MessageSkeleton } from "../components/MessageSkeleton";
+import { createFileRoute } from '@tanstack/react-router';
+import { useStore } from '@tanstack/react-store';
+import { chatStore, chatActions } from '../store/chatStore';
+import { ApiKeySetup } from '../components/ApiKeySetup';
+import { Sidebar } from '../components/Sidebar';
+import { ChatMessage } from '../components/ChatMessage';
+import { ChatInput } from '../components/ChatInput';
+import { Button } from '../components/ui/button';
+import { ScrollArea } from '../components/ui/scroll-area';
+import { MessageSkeleton } from '../components/MessageSkeleton';
+import type { Message } from '@/types/chat';
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute('/')({
   component: ChatApp,
 });
 
@@ -28,6 +29,67 @@ function ChatApp() {
   }
 
   const currentChat = chats.find((chat) => chat.id === currentChatId);
+
+  // Action handlers for ChatMessage
+  const handleCopyMessage = (message: Message) => {
+    // Optional: Add analytics or logging
+    console.log('Message copied:', message.id);
+  };
+
+  const handleBranchConversation = (message: Message) => {
+    if (!currentChat) return;
+
+    // Find the index of the message to branch from
+    const messageIndex = currentChat.messages.findIndex(
+      (m) => m.id === message.id
+    );
+
+    // Create new conversation with history up to this point (including the message being branched from)
+    const branchedMessages = currentChat.messages.slice(0, messageIndex + 1);
+
+    // Create new chat with branched history
+    const newChatId = chatActions.createNewChat();
+
+    // Update the new chat with the branched messages
+    chatActions.setBranchedMessages(newChatId, branchedMessages);
+  };
+
+  const handleRetryMessage = async (message: Message) => {
+    if (!currentChat) return;
+
+    // Find the user message that preceded this assistant message
+    const messageIndex = currentChat.messages.findIndex(
+      (m) => m.id === message.id
+    );
+    const userMessage = currentChat.messages[messageIndex - 1];
+
+    if (userMessage && userMessage.role === 'user') {
+      // Remove the current assistant message from the chat
+      chatActions.removeMessage(currentChat.id, message.id);
+
+      // Use the new retry action that doesn't duplicate the user message
+      await chatActions.retryMessage(currentChat.id, userMessage);
+    }
+  };
+
+  const handleDeleteMessage = async (message: Message) => {
+    if (!currentChat) return;
+
+    const messageIndex = currentChat.messages.findIndex(
+      (m) => m.id === message.id
+    );
+
+    // Remove the user message
+    await chatActions.removeMessage(currentChat.id, message.id);
+
+    // If there's an assistant message right after this user message, remove it too
+    if (messageIndex + 1 < currentChat.messages.length) {
+      const nextMessage = currentChat.messages[messageIndex + 1];
+      if (nextMessage.role === 'assistant') {
+        await chatActions.removeMessage(currentChat.id, nextMessage.id);
+      }
+    }
+  };
 
   return (
     <div className="h-screen w-screen flex bg-background overflow-hidden">
@@ -64,6 +126,10 @@ function ChatApp() {
                     key={message.id}
                     message={message}
                     isStreaming={streamingMessageId === message.id}
+                    onCopy={handleCopyMessage}
+                    onBranch={handleBranchConversation}
+                    onDelete={handleDeleteMessage}
+                    onRetry={handleRetryMessage}
                   />
                 ))}
 

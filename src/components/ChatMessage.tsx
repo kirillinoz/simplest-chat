@@ -1,30 +1,50 @@
-import { useState, useEffect } from "react";
-import type { Message } from "../types/chat";
-import { User, Bot, Image as ImageIcon, FileText } from "lucide-react";
-import { Card } from "./ui/card";
-import { GEMINI_MODELS } from "../types/chat";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import rehypeHighlight from "rehype-highlight";
-import rehypeKatex from "rehype-katex";
-import "katex/dist/katex.min.css";
-import type { FileReference } from "../utils/fileStorage";
-import { fileStorage } from "../utils/fileStorage";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useState, useEffect } from 'react';
+import type { Message } from '../types/chat';
+import {
+  User,
+  Bot,
+  Image as ImageIcon,
+  FileText,
+  Copy,
+  GitBranch,
+  RotateCcw,
+  Trash2,
+} from 'lucide-react';
+import { Card } from './ui/card';
+import { GEMINI_MODELS } from '../types/chat';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeHighlight from 'rehype-highlight';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
+import type { FileReference } from '../utils/fileStorage';
+import { fileStorage } from '../utils/fileStorage';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Button } from './ui/button';
 
 interface ChatMessageProps {
   message: Message;
   isStreaming?: boolean;
+  onCopy?: (message: Message) => void;
+  onBranch?: (message: Message) => void;
+  onRetry?: (message: Message) => void;
+  onDelete?: (message: Message) => void;
 }
 
 export const ChatMessage = ({
   message,
   isStreaming = false,
+  onCopy,
+  onBranch,
+  onRetry,
+  onDelete,
 }: ChatMessageProps) => {
   const { theme } = useTheme();
   const [loadedFiles, setLoadedFiles] = useState<Map<string, File>>(new Map());
   const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set());
+  const [showActions, setShowActions] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   // Dynamically load highlight.js theme based on current theme
   useEffect(() => {
@@ -36,12 +56,12 @@ export const ChatMessage = ({
       existingLinks.forEach((link) => link.remove());
 
       // Create new link element
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
       link.href =
-        theme === "light"
-          ? "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css"
-          : "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css";
+        theme === 'light'
+          ? 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css'
+          : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css';
 
       document.head.appendChild(link);
     };
@@ -52,6 +72,29 @@ export const ChatMessage = ({
   const getModelDisplayName = (model?: string) => {
     if (!model) return null;
     return GEMINI_MODELS[model as keyof typeof GEMINI_MODELS]?.name || model;
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+      onCopy?.(message);
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+    }
+  };
+
+  const handleBranch = () => {
+    onBranch?.(message);
+  };
+
+  const handleRetry = () => {
+    onRetry?.(message);
+  };
+
+  const handleDelete = () => {
+    onDelete?.(message);
   };
 
   useEffect(() => {
@@ -85,7 +128,7 @@ export const ChatMessage = ({
           const ref = filesToLoad[index];
           stillLoading.delete(ref.id);
 
-          if (result.status === "fulfilled" && result.value.file) {
+          if (result.status === 'fulfilled' && result.value.file) {
             newFiles.set(ref.id, result.value.file);
           }
         });
@@ -93,7 +136,7 @@ export const ChatMessage = ({
         setLoadedFiles(newFiles);
         setLoadingFiles(stillLoading);
       } catch (error) {
-        console.error("Failed to load files:", error);
+        console.error('Failed to load files:', error);
         setLoadingFiles((prev) => {
           const newSet = new Set(prev);
           filesToLoad.forEach((f) => newSet.delete(f.id));
@@ -110,10 +153,10 @@ export const ChatMessage = ({
   };
 
   const isImage = (ref: FileReference): boolean => {
-    if (!ref || !ref.type || typeof ref.type !== "string") {
+    if (!ref || !ref.type || typeof ref.type !== 'string') {
       return false;
     }
-    return ref.type.startsWith("image/");
+    return ref.type.startsWith('image/');
   };
 
   const canShowImagePreview = (ref: FileReference): boolean => {
@@ -122,7 +165,7 @@ export const ChatMessage = ({
   };
 
   const isValidFileReference = (ref: any): ref is FileReference => {
-    return ref && typeof ref === "object" && ref.id && ref.name && ref.type;
+    return ref && typeof ref === 'object' && ref.id && ref.name && ref.type;
   };
 
   // Filter out invalid attachments
@@ -131,23 +174,25 @@ export const ChatMessage = ({
 
   return (
     <div
-      className={`flex gap-4 p-6 ${
-        message.role === "user" ? "user-message-bg" : "assistant-message-bg"
+      className={`group flex gap-4 p-6 hover:bg-theme-muted/20 transition-colors ${
+        message.role === 'user' ? 'user-message-bg' : 'assistant-message-bg'
       }`}
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
     >
       <div
         className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-          message.role === "user"
-            ? "bg-primary text-primary-foreground"
-            : "bg-theme-muted text-theme-foreground"
+          message.role === 'user'
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-theme-muted text-theme-foreground'
         }`}
       >
-        {message.role === "user" ? <User size={16} /> : <Bot size={16} />}
+        {message.role === 'user' ? <User size={16} /> : <Bot size={16} />}
       </div>
 
       <div className="flex-1 space-y-3">
         {/* Attachments */}
-        {message.role === "user" && validAttachments.length > 0 && (
+        {message.role === 'user' && validAttachments.length > 0 && (
           <div className="space-y-2">
             {/* Image previews */}
             {validAttachments.filter(canShowImagePreview).length > 0 && (
@@ -175,14 +220,14 @@ export const ChatMessage = ({
                         <div className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-1 py-0.5 rounded">
                           <ImageIcon className="w-3 h-3 inline mr-1" />
                           {ref.name.length > 20
-                            ? ref.name.substring(0, 20) + "..."
+                            ? ref.name.substring(0, 20) + '...'
                             : ref.name}
                         </div>
                       </div>
                     );
                   } catch (error) {
                     console.warn(
-                      "Could not create object URL for image:",
+                      'Could not create object URL for image:',
                       error
                     );
                     return null;
@@ -283,7 +328,7 @@ export const ChatMessage = ({
                 }
                 return (
                   <code
-                    className={`${className || ""} block bg-theme-background text-theme-foreground p-4 rounded-lg overflow-x-auto text-sm font-mono my-3`}
+                    className={`${className || ''} block bg-theme-background text-theme-foreground p-4 rounded-lg overflow-x-auto text-sm font-mono my-3`}
                     {...rest}
                   >
                     {children}
@@ -345,17 +390,17 @@ export const ChatMessage = ({
           )}
         </div>
 
-        {/* Timestamp and model info */}
-        <div className="text-xs text-theme-muted-foreground flex items-center gap-2">
+        {/* Timestamp, model info, action buttons */}
+        <div className="text-xs text-theme-muted-foreground flex items-center gap-2 min-h-[32px]">
           <span>{message.timestamp.toLocaleTimeString()}</span>
           {message.model && (
             <>
               <span>•</span>
               <span
                 className={`px-2 py-1 rounded text-xs font-medium ${
-                  message.role === "assistant"
-                    ? "bg-theme-muted text-theme-foreground"
-                    : "bg-primary text-primary-foreground"
+                  message.role === 'assistant'
+                    ? 'bg-theme-muted text-theme-foreground'
+                    : 'bg-primary text-primary-foreground'
                 }`}
               >
                 {getModelDisplayName(message.model)}
@@ -368,9 +413,64 @@ export const ChatMessage = ({
               <span>•</span>
               <span className="text-xs text-theme-muted-foreground">
                 {validAttachments.length} attachment
-                {validAttachments.length > 1 ? "s" : ""}
+                {validAttachments.length > 1 ? 's' : ''}
               </span>
             </>
+          )}
+          {/* Action buttons */}
+          {showActions && !isStreaming && (
+            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Copy button - available for all messages */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCopy}
+                className="h-8 px-2 text-theme-muted-foreground hover:text-theme-foreground"
+                title="Copy message"
+              >
+                <Copy size={14} />
+                {copySuccess && <span className="ml-1 text-xs">Copied!</span>}
+              </Button>
+
+              {/* Branch button - only for assistant messages */}
+              {message.role === 'assistant' && onBranch && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBranch}
+                  className="h-8 px-2 text-theme-muted-foreground hover:text-theme-foreground"
+                  title="Branch conversation"
+                >
+                  <GitBranch size={14} />
+                </Button>
+              )}
+
+              {/* Retry button - only for assistant messages */}
+              {message.role === 'assistant' && onRetry && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRetry}
+                  className="h-8 px-2 text-theme-muted-foreground hover:text-theme-foreground"
+                  title="Retry message"
+                >
+                  <RotateCcw size={14} />
+                </Button>
+              )}
+
+              {/* Delete button - only for user messages */}
+              {message.role === 'user' && onDelete && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDelete}
+                  className="h-8 px-2 text-theme-muted-foreground hover:text-destructive"
+                  title="Delete message"
+                >
+                  <Trash2 size={14} />
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </div>

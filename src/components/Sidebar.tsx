@@ -1,22 +1,22 @@
-import { Plus, MessageSquare, Trash2, Edit3, Check, X } from "lucide-react";
-import { useStore } from "@tanstack/react-store";
-import { chatStore, chatActions } from "../store/chatStore";
-import { Button } from "./ui/button";
-import { ScrollArea } from "./ui/scroll-area";
-import { Separator } from "./ui/separator";
-import { SettingsPopover } from "./SettingsPopover";
-import { ThemeToggle } from "./ThemeToggle";
-import { useState, useRef, useEffect } from "react";
+import { Plus, MessageSquare, Trash2, Edit3, Check, X } from 'lucide-react';
+import { useStore } from '@tanstack/react-store';
+import { chatStore, chatActions } from '../store/chatStore';
+import { Button } from './ui/button';
+import { ScrollArea } from './ui/scroll-area';
+import { Separator } from './ui/separator';
+import { SettingsPopover } from './SettingsPopover';
+import { ThemeToggle } from './ThemeToggle';
+import { useState, useRef, useEffect } from 'react';
 
 const truncateTitle = (title: string, maxLength: number = 25) => {
   if (title.length <= maxLength) return title;
-  return title.substring(0, maxLength).trim() + "...";
+  return title.substring(0, maxLength).trim() + '...';
 };
 
 export const Sidebar = () => {
   const { chats, currentChatId } = useStore(chatStore);
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
-  const [editingTitle, setEditingTitle] = useState("");
+  const [editingTitle, setEditingTitle] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Focus input when editing starts
@@ -34,7 +34,7 @@ export const Sidebar = () => {
 
   const cancelEditing = () => {
     setEditingChatId(null);
-    setEditingTitle("");
+    setEditingTitle('');
   };
 
   const saveTitle = () => {
@@ -45,10 +45,10 @@ export const Sidebar = () => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       e.preventDefault();
       saveTitle();
-    } else if (e.key === "Escape") {
+    } else if (e.key === 'Escape') {
       cancelEditing();
     }
   };
@@ -87,8 +87,8 @@ export const Sidebar = () => {
               key={chat.id}
               className={`group flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
                 currentChatId === chat.id
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-theme-background bg-theme-background/50"
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-theme-background bg-theme-background/50'
               }`}
               onClick={() => {
                 if (editingChatId !== chat.id) {
@@ -140,7 +140,7 @@ export const Sidebar = () => {
                 <>
                   <span
                     className={`flex-1 text-sm min-w-0 truncate ${
-                      currentChatId === chat.id ? "font-bold" : "font-normal"
+                      currentChatId === chat.id ? 'font-bold' : 'font-normal'
                     }`}
                   >
                     {truncateTitle(chat.title)}
@@ -161,9 +161,9 @@ export const Sidebar = () => {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation();
-                        chatActions.deleteChat(chat.id);
+                        await chatActions.deleteChat(chat.id);
                       }}
                       className="h-6 w-6 p-0 hover:bg-theme-muted text-theme-muted-foreground hover:text-destructive flex-shrink-0"
                       title="Delete chat"
