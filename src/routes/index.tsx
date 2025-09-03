@@ -8,7 +8,7 @@ import { ChatInput } from '../components/ChatInput';
 import { Button } from '../components/ui/button';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { MessageSkeleton } from '../components/MessageSkeleton';
-import type { Message } from '@/types/chat';
+import type { GeminiModel, Message, ThinkingBudget } from '@/types/chat';
 
 export const Route = createFileRoute('/')({
   component: ChatApp,
@@ -54,7 +54,14 @@ function ChatApp() {
     chatActions.setBranchedMessages(newChatId, branchedMessages);
   };
 
-  const handleRetryMessage = async (message: Message) => {
+  const handleRetryMessage = async (
+    message: Message,
+    retrySettings: {
+      model: GeminiModel;
+      thinkingBudget: ThinkingBudget;
+      temperature: number;
+    }
+  ) => {
     if (!currentChat) return;
 
     // Find the user message that preceded this assistant message
@@ -67,8 +74,12 @@ function ChatApp() {
       // Remove the current assistant message from the chat
       chatActions.removeMessage(currentChat.id, message.id);
 
-      // Use the new retry action that doesn't duplicate the user message
-      await chatActions.retryMessage(currentChat.id, userMessage);
+      // Use the retry action with the specific settings from the dialog
+      await chatActions.retryMessageWithSettings(
+        currentChat.id,
+        userMessage,
+        retrySettings
+      );
     }
   };
 
@@ -89,6 +100,13 @@ function ChatApp() {
         await chatActions.removeMessage(currentChat.id, nextMessage.id);
       }
     }
+  };
+
+  // Get current settings for the retry dialog
+  const currentSettings = {
+    model: settings.selectedModel,
+    thinkingBudget: settings.thinkingBudgets[settings.selectedModel],
+    temperature: settings.temperature,
   };
 
   return (
@@ -126,10 +144,12 @@ function ChatApp() {
                     key={message.id}
                     message={message}
                     isStreaming={streamingMessageId === message.id}
+                    isRetrying={isLoading && message.role === 'assistant'}
                     onCopy={handleCopyMessage}
                     onBranch={handleBranchConversation}
                     onDelete={handleDeleteMessage}
                     onRetry={handleRetryMessage}
+                    currentSettings={currentSettings}
                   />
                 ))}
 

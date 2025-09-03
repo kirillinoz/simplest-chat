@@ -46,6 +46,12 @@ export const chatActions = {
     chatStore.setState((prev) => ({ ...prev, settings }));
   },
 
+  setSettingsMode: (mode: SettingsMode) => {
+    const settings = { ...chatStore.state.settings, settingsMode: mode };
+    storage.saveSettings(settings);
+    chatStore.setState((prev) => ({ ...prev, settings }));
+  },
+
   setModel: (model: GeminiModel) => {
     const settings = { ...chatStore.state.settings, selectedModel: model };
     storage.saveSettings(settings);
@@ -53,43 +59,72 @@ export const chatActions = {
   },
 
   setThinkingBudget: (model: GeminiModel, budget: ThinkingBudget) => {
-    const settings = {
-      ...chatStore.state.settings,
-      thinkingBudgets: {
-        ...chatStore.state.settings.thinkingBudgets,
+    chatStore.setState((prev) => {
+      const newThinkingBudgets = {
+        ...prev.settings.thinkingBudgets,
         [model]: budget,
-      },
-    };
-    storage.saveSettings(settings);
-    chatStore.setState((prev) => ({ ...prev, settings }));
+      };
+
+      // Check if current combination matches a response style
+      const currentTemp = prev.settings.temperature;
+      const matchingStyle = Object.entries(RESPONSE_STYLES).find(
+        ([_, style]) =>
+          style.thinkingBudget === budget &&
+          Math.abs(style.temperature - currentTemp) < 0.05
+      );
+
+      return {
+        ...prev,
+        settings: {
+          ...prev.settings,
+          thinkingBudgets: newThinkingBudgets,
+          responseStyle: matchingStyle
+            ? (matchingStyle[0] as ResponseStyle)
+            : prev.settings.responseStyle,
+        },
+      };
+    });
   },
 
   setTemperature: (temperature: number) => {
-    const settings = { ...chatStore.state.settings, temperature };
-    storage.saveSettings(settings);
-    chatStore.setState((prev) => ({ ...prev, settings }));
+    chatStore.setState((prev) => {
+      // Check if current combination matches a response style
+      const currentThinking =
+        prev.settings.thinkingBudgets[prev.settings.selectedModel];
+      const matchingStyle = Object.entries(RESPONSE_STYLES).find(
+        ([_, style]) =>
+          style.thinkingBudget === currentThinking &&
+          Math.abs(style.temperature - temperature) < 0.05
+      );
+
+      return {
+        ...prev,
+        settings: {
+          ...prev.settings,
+          temperature,
+          responseStyle: matchingStyle
+            ? (matchingStyle[0] as ResponseStyle)
+            : prev.settings.responseStyle,
+        },
+      };
+    });
   },
 
-  setSettingsMode: (mode: SettingsMode) => {
-    const settings = { ...chatStore.state.settings, settingsMode: mode };
-    storage.saveSettings(settings);
-    chatStore.setState((prev) => ({ ...prev, settings }));
-  },
+  setResponseStyle: (responseStyle: ResponseStyle) => {
+    const style = RESPONSE_STYLES[responseStyle];
 
-  setResponseStyle: (style: ResponseStyle) => {
-    const styleConfig = RESPONSE_STYLES[style];
-    const settings = {
-      ...chatStore.state.settings,
-      responseStyle: style,
-      // Update both thinking budget and temperature based on the style
-      thinkingBudgets: {
-        ...chatStore.state.settings.thinkingBudgets,
-        [chatStore.state.settings.selectedModel]: styleConfig.thinkingBudget,
+    chatStore.setState((prev) => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        responseStyle,
+        thinkingBudgets: {
+          ...prev.settings.thinkingBudgets,
+          [prev.settings.selectedModel]: style.thinkingBudget,
+        },
+        temperature: style.temperature,
       },
-      temperature: styleConfig.temperature,
-    };
-    storage.saveSettings(settings);
-    chatStore.setState((prev) => ({ ...prev, settings }));
+    }));
   },
 
   createNewChat: () => {
@@ -252,6 +287,8 @@ export const chatActions = {
     const { currentChatId, chats, settings } = chatStore.state;
     if (!currentChatId) return;
 
+    const startTime = Date.now(); // Track start time
+
     try {
       // Convert file references back to File objects for API call
       const files = await Promise.all(
@@ -276,12 +313,16 @@ export const chatActions = {
 
       // Create assistant message placeholder
       const assistantMessageId = (Date.now() + 1).toString();
+      const currentThinkingBudget =
+        settings.thinkingBudgets[settings.selectedModel];
       const assistantMessage: Message = {
         id: assistantMessageId,
         role: 'assistant',
         content: '', // Start empty
         timestamp: new Date(),
         model: settings.selectedModel,
+        thinkingBudget: currentThinkingBudget, // Store the thinking budget used
+        temperature: settings.temperature, // Store the temperature used
       };
 
       let updatedChats = chats.map((chat) =>
@@ -348,6 +389,10 @@ export const chatActions = {
         }
       );
 
+      // Calculate response time and update the message
+      const responseTime = Date.now() - startTime;
+      chatActions.updateMessageResponseTime(assistantMessageId, responseTime);
+
       chatActions.finishStreamingMessage();
     } catch (error) {
       console.error('Error sending message:', error);
@@ -374,7 +419,7 @@ export const chatActions = {
             })),
             title:
               messages.length > 0
-                ? `${messages[0].content.substring(0, 50)} (Branch)`
+                ? `${messages[0].content.substring(0, 50)} (Copy)`
                 : 'Branched Chat',
             updatedAt: new Date(),
           }
@@ -448,8 +493,17 @@ export const chatActions = {
     }));
   },
 
-  retryMessage: async (chatId: string, userMessage: Message) => {
-    const { chats, settings } = chatStore.state;
+  retryMessageWithSettings: async (
+    chatId: string,
+    userMessage: Message,
+    retrySettings: {
+      model: GeminiModel;
+      thinkingBudget: ThinkingBudget;
+      temperature: number;
+    }
+  ) => {
+    const { chats } = chatStore.state;
+    const startTime = Date.now();
 
     try {
       // Convert file references back to File objects for API call
@@ -463,14 +517,16 @@ export const chatActions = {
       // Filter out any null files
       const validFiles = files.filter(Boolean) as File[];
 
-      // Create new assistant message placeholder
+      // Create new assistant message placeholder with the selected model
       const assistantMessageId = Date.now().toString();
       const assistantMessage: Message = {
         id: assistantMessageId,
         role: 'assistant',
         content: '', // Start empty
         timestamp: new Date(),
-        model: settings.selectedModel,
+        model: retrySettings.model, // Use the model from retry settings
+        thinkingBudget: retrySettings.thinkingBudget, // Store retry thinking budget
+        temperature: retrySettings.temperature, // Store retry temperature
       };
 
       // Add only the new assistant message (user message already exists)
@@ -505,17 +561,14 @@ export const chatActions = {
           parts: [{ text: msg.content }],
         }));
 
-      // Get current thinking budget and temperature
-      const thinkingBudget = settings.thinkingBudgets[settings.selectedModel];
-      const temperature = settings.temperature;
-
+      // Use the settings from the retry dialog
       await sendMessageToGeminiStream(
         userMessage.content,
         conversationHistory,
         validFiles,
-        settings.selectedModel,
-        thinkingBudget,
-        temperature,
+        retrySettings.model,
+        retrySettings.thinkingBudget,
+        retrySettings.temperature,
         (chunk: string) => {
           // Update the streaming message
           const currentContent =
@@ -531,6 +584,10 @@ export const chatActions = {
         }
       );
 
+      // Calculate response time and update the message
+      const responseTime = Date.now() - startTime;
+      chatActions.updateMessageResponseTime(assistantMessageId, responseTime);
+
       chatActions.finishStreamingMessage();
     } catch (error) {
       console.error('Error retrying message:', error);
@@ -542,5 +599,20 @@ export const chatActions = {
           error instanceof Error ? error.message : 'Failed to retry message',
       }));
     }
+  },
+
+  updateMessageResponseTime: (messageId: string, responseTimeMs: number) => {
+    const { chats } = chatStore.state;
+    const updatedChats = chats.map((chat) => ({
+      ...chat,
+      messages: chat.messages.map((msg) =>
+        msg.id === messageId ? { ...msg, responseTimeMs } : msg
+      ),
+    }));
+
+    chatStore.setState((prev) => ({
+      ...prev,
+      chats: updatedChats,
+    }));
   },
 };
