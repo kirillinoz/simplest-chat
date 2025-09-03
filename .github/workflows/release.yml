@@ -1,0 +1,17 @@
+# Add this to your existing workflow or create .github/workflows/release.yml
+name: 'Create Release'
+on:
+  push:
+    branches: [main]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Gets full history for changelog
+
+      - name: 'Generate changelog and create release'
+        uses: actions/create-release@v1
+        # This automatically creates releases based on conventional commits
