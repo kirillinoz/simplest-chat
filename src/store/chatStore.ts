@@ -257,7 +257,7 @@ export const chatActions = {
     }));
   },
 
-  clearAllData: async () => {
+  clearAllData: async (): Promise<void> => {
     try {
       // Clear all files from our project's IndexedDB
       await fileStorage.clearAll();

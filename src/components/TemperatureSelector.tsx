@@ -38,7 +38,7 @@ export const TemperatureSelector = () => {
         value={currentOption.value.toString()}
         onValueChange={handleTemperatureChange}
       >
-        <SelectTrigger className="w-30 h-8 text-sm border-theme-border">
+        <SelectTrigger className="w-32 h-8 text-sm border-theme-border">
           <SelectValue>{currentOption.label}</SelectValue>
         </SelectTrigger>
         <SelectContent className="bg-theme-background border-theme-border">
