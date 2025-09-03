@@ -1,4 +1,4 @@
-import { Bot } from "lucide-react";
+import { Bot } from 'lucide-react';
 
 export const TypingIndicator = () => {
   return (

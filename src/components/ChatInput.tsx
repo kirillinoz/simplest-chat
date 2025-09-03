@@ -1,20 +1,20 @@
-import { useState, useRef } from "react";
-import { Send, Paperclip, X, FileText, AlertCircle } from "lucide-react";
-import { chatActions, chatStore } from "../store/chatStore";
-import { fileStorage } from "../utils/fileStorage";
-import { Button } from "./ui/button";
-import { Textarea } from "./ui/textarea";
-import { ModelSelector } from "./ModelSelector";
-import { ThinkingBudgetSelector } from "./ThinkingBudgetSelector";
-import { useStore } from "@tanstack/react-store";
-import { TemperatureSelector } from "./TemperatureSelector";
-import { ResponseStyleSelector } from "./ResponseStyleSelector";
+import { useState, useRef } from 'react';
+import { Send, Paperclip, X, FileText, AlertCircle } from 'lucide-react';
+import { chatActions, chatStore } from '../store/chatStore';
+import { fileStorage } from '../utils/fileStorage';
+import { Button } from './ui/button';
+import { Textarea } from './ui/textarea';
+import { ModelSelector } from './ModelSelector';
+import { ThinkingBudgetSelector } from './ThinkingBudgetSelector';
+import { useStore } from '@tanstack/react-store';
+import { TemperatureSelector } from './TemperatureSelector';
+import { ResponseStyleSelector } from './ResponseStyleSelector';
 
 export const ChatInput = () => {
   const { settings } = useStore(chatStore);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
-  const [uploadError, setUploadError] = useState<string>("");
+  const [uploadError, setUploadError] = useState<string>('');
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -32,13 +32,13 @@ export const ChatInput = () => {
       );
 
       await chatActions.sendMessage(message, fileReferences);
-      setMessage("");
+      setMessage('');
       setAttachments([]);
-      setUploadError("");
+      setUploadError('');
     } catch (error) {
-      console.error("Failed to send message:", error);
-      setUploadError("Failed to send message. Please try again.");
-      setTimeout(() => setUploadError(""), 3000);
+      console.error('Failed to send message:', error);
+      setUploadError('Failed to send message. Please try again.');
+      setTimeout(() => setUploadError(''), 3000);
     } finally {
       setIsUploading(false);
     }
@@ -46,20 +46,20 @@ export const ChatInput = () => {
 
   const isImage = (file: File): boolean => {
     return (
-      file.type.startsWith("image/") &&
+      file.type.startsWith('image/') &&
       [
-        "image/png",
-        "image/jpeg",
-        "image/jpg",
-        "image/webp",
-        "image/heic",
-        "image/heif",
+        'image/png',
+        'image/jpeg',
+        'image/jpg',
+        'image/webp',
+        'image/heic',
+        'image/heif',
       ].includes(file.type)
     );
   };
 
   const isPDF = (file: File): boolean => {
-    return file.type === "application/pdf";
+    return file.type === 'application/pdf';
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,9 +68,9 @@ export const ChatInput = () => {
 
     if (supportedFiles.length !== files.length) {
       setUploadError(
-        "Only PDF and image files (PNG, JPEG, WebP, HEIC, HEIF) are supported"
+        'Only PDF and image files (PNG, JPEG, WebP, HEIC, HEIF) are supported'
       );
-      setTimeout(() => setUploadError(""), 3000);
+      setTimeout(() => setUploadError(''), 3000);
     }
 
     if (supportedFiles.length > 0) {
@@ -85,19 +85,19 @@ export const ChatInput = () => {
 
       if (oversizedFiles.length > 0) {
         setUploadError(
-          "Images must be smaller than 20MB, PDFs smaller than 50MB"
+          'Images must be smaller than 20MB, PDFs smaller than 50MB'
         );
-        setTimeout(() => setUploadError(""), 3000);
+        setTimeout(() => setUploadError(''), 3000);
         return;
       }
 
       setAttachments((prev) => [...prev, ...supportedFiles]);
-      setUploadError("");
+      setUploadError('');
     }
 
     // Clear the input
     if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      fileInputRef.current.value = '';
     }
   };
 
@@ -106,9 +106,9 @@ export const ChatInput = () => {
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + " B";
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
   const getFileIcon = (file: File) => {
@@ -132,13 +132,13 @@ export const ChatInput = () => {
   };
 
   const getFileTypeLabel = (file: File) => {
-    if (isImage(file)) return "Image";
-    if (isPDF(file)) return "PDF";
-    return "File";
+    if (isImage(file)) return 'Image';
+    if (isPDF(file)) return 'PDF';
+    return 'File';
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
     }
@@ -161,10 +161,10 @@ export const ChatInput = () => {
                   key={index}
                   className={`flex items-center gap-3 border px-3 py-2 rounded-lg text-sm bg-theme-background ${
                     isImage(file)
-                      ? "border-chart-2/50" // Green for images
+                      ? 'border-chart-2/50' // Green for images
                       : isLargeFile
-                        ? "border-chart-3/50" // Orange for large files
-                        : "border-chart-1/50" // Blue for PDFs
+                        ? 'border-chart-3/50' // Orange for large files
+                        : 'border-chart-1/50' // Blue for PDFs
                   }`}
                 >
                   {/* File icon or image thumbnail */}
@@ -178,14 +178,14 @@ export const ChatInput = () => {
                     <span
                       className={`text-xs ${
                         isImage(file)
-                          ? "text-chart-2" // Green for images
+                          ? 'text-chart-2' // Green for images
                           : isLargeFile
-                            ? "text-chart-3" // Orange for large files
-                            : "text-theme-muted-foreground"
+                            ? 'text-chart-3' // Orange for large files
+                            : 'text-theme-muted-foreground'
                       }`}
                     >
                       {getFileTypeLabel(file)} • {formatFileSize(file.size)}
-                      {isLargeFile && " (File API)"}
+                      {isLargeFile && ' (File API)'}
                     </span>
                   </div>
 
@@ -262,7 +262,7 @@ export const ChatInput = () => {
           </div>
 
           {/* Settings based on mode */}
-          {settings.settingsMode === "simple" ? (
+          {settings.settingsMode === 'simple' ? (
             <>
               {/* Thinking Budget */}
               <div>

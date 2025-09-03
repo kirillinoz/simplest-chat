@@ -1,15 +1,15 @@
-import { useState } from "react";
-import { Settings, Trash2, AlertTriangle } from "lucide-react";
-import { useStore } from "@tanstack/react-store";
-import { chatStore, chatActions } from "../store/chatStore";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Separator } from "./ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { fileStorage } from "../utils/fileStorage";
-import type { SettingsMode } from "../types/chat";
+import { useState } from 'react';
+import { Settings, Trash2, AlertTriangle } from 'lucide-react';
+import { useStore } from '@tanstack/react-store';
+import { chatStore, chatActions } from '../store/chatStore';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Separator } from './ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { fileStorage } from '../utils/fileStorage';
+import type { SettingsMode } from '../types/chat';
 
 export const SettingsPopover = () => {
   const { settings } = useStore(chatStore);
@@ -32,7 +32,7 @@ export const SettingsPopover = () => {
   const handleClearAllData = async () => {
     if (
       !confirm(
-        "Are you sure you want to clear all data? This cannot be undone."
+        'Are you sure you want to clear all data? This cannot be undone.'
       )
     ) {
       return;
@@ -50,12 +50,12 @@ export const SettingsPopover = () => {
       chatActions.clearAllData();
 
       // Reset API key input
-      setApiKey("");
+      setApiKey('');
 
-      alert("All data has been cleared.");
+      alert('All data has been cleared.');
     } catch (error) {
-      console.error("Error clearing data:", error);
-      alert("Failed to clear all data. Please try again.");
+      console.error('Error clearing data:', error);
+      alert('Failed to clear all data. Please try again.');
     } finally {
       setIsClearing(false);
     }
@@ -119,7 +119,7 @@ export const SettingsPopover = () => {
                     className="bg-theme-background border-theme-border"
                   />
                   <p className="text-xs text-theme-muted-foreground">
-                    Get your API key from{" "}
+                    Get your API key from{' '}
                     <a
                       href="https://aistudio.google.com/app/apikey"
                       target="_blank"
@@ -144,8 +144,8 @@ export const SettingsPopover = () => {
                         type="radio"
                         name="settingsMode"
                         value="simple"
-                        checked={settings.settingsMode === "simple"}
-                        onChange={() => handleModeChange("simple")}
+                        checked={settings.settingsMode === 'simple'}
+                        onChange={() => handleModeChange('simple')}
                         className="text-primary mt-1"
                       />
                       <div className="flex-1">
@@ -164,8 +164,8 @@ export const SettingsPopover = () => {
                         type="radio"
                         name="settingsMode"
                         value="simplest"
-                        checked={settings.settingsMode === "simplest"}
-                        onChange={() => handleModeChange("simplest")}
+                        checked={settings.settingsMode === 'simplest'}
+                        onChange={() => handleModeChange('simplest')}
                         className="text-primary mt-1"
                       />
                       <div className="flex-1">
@@ -182,10 +182,10 @@ export const SettingsPopover = () => {
 
                   <div className="mt-4 p-3 bg-theme-muted/30 rounded-lg">
                     <div className="text-xs text-theme-muted-foreground">
-                      <strong>Current:</strong>{" "}
-                      {settings.settingsMode === "simple"
-                        ? "Simple"
-                        : "Simplest"}{" "}
+                      <strong>Current:</strong>{' '}
+                      {settings.settingsMode === 'simple'
+                        ? 'Simple'
+                        : 'Simplest'}{' '}
                       Mode
                     </div>
                   </div>
@@ -213,7 +213,7 @@ export const SettingsPopover = () => {
                             <span>
                               {(storageInfo.available / (1024 * 1024)).toFixed(
                                 1
-                              )}{" "}
+                              )}{' '}
                               MB
                             </span>
                           </div>

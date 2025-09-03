@@ -16,7 +16,6 @@ jobs:
         # Fetch the code from the PR branch
         with:
           ref: ${{ github.head_ref }}
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 'Install pnpm'
         uses: pnpm/action-setup@v4
@@ -31,17 +30,6 @@ jobs:
 
       - name: 'Install dependencies'
         run: pnpm install --frozen-lockfile
-
-      - name: 'Run Prettier format'
-        run: pnpm run format:write
-
-      - name: 'Commit formatting changes'
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add .
-          git diff --staged --quiet || git commit -m "Auto-format code with Prettier"
-          git push
 
       - name: 'Run ESLint check'
         # This command checks for code quality issues
