@@ -73,15 +73,20 @@ export const chatActions = {
           Math.abs(style.temperature - currentTemp) < 0.05
       );
 
+      const newSettings = {
+        ...prev.settings,
+        thinkingBudgets: newThinkingBudgets,
+        responseStyle: matchingStyle
+          ? (matchingStyle[0] as ResponseStyle)
+          : prev.settings.responseStyle,
+      };
+
+      // Save to storage
+      storage.saveSettings(newSettings);
+
       return {
         ...prev,
-        settings: {
-          ...prev.settings,
-          thinkingBudgets: newThinkingBudgets,
-          responseStyle: matchingStyle
-            ? (matchingStyle[0] as ResponseStyle)
-            : prev.settings.responseStyle,
-        },
+        settings: newSettings,
       };
     });
   },
@@ -97,15 +102,20 @@ export const chatActions = {
           Math.abs(style.temperature - temperature) < 0.05
       );
 
+      const newSettings = {
+        ...prev.settings,
+        temperature,
+        responseStyle: matchingStyle
+          ? (matchingStyle[0] as ResponseStyle)
+          : prev.settings.responseStyle,
+      };
+
+      // Save to storage
+      storage.saveSettings(newSettings);
+
       return {
         ...prev,
-        settings: {
-          ...prev.settings,
-          temperature,
-          responseStyle: matchingStyle
-            ? (matchingStyle[0] as ResponseStyle)
-            : prev.settings.responseStyle,
-        },
+        settings: newSettings,
       };
     });
   },
@@ -113,9 +123,8 @@ export const chatActions = {
   setResponseStyle: (responseStyle: ResponseStyle) => {
     const style = RESPONSE_STYLES[responseStyle];
 
-    chatStore.setState((prev) => ({
-      ...prev,
-      settings: {
+    chatStore.setState((prev) => {
+      const newSettings = {
         ...prev.settings,
         responseStyle,
         thinkingBudgets: {
@@ -123,8 +132,16 @@ export const chatActions = {
           [prev.settings.selectedModel]: style.thinkingBudget,
         },
         temperature: style.temperature,
-      },
-    }));
+      };
+
+      // Save to storage
+      storage.saveSettings(newSettings);
+
+      return {
+        ...prev,
+        settings: newSettings,
+      };
+    });
   },
 
   createNewChat: () => {

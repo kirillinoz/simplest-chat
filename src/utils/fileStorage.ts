@@ -15,9 +15,9 @@ interface FileReference {
 }
 
 class FileStorageManager {
-  public dbName = 'minigem-files';
-  public version = 1;
-  public db: IDBDatabase | null = null;
+  private dbName = 'minigem-files';
+  private version = 1;
+  private db: IDBDatabase | null = null;
 
   async init(): Promise<void> {
     return new Promise((resolve, reject) => {
