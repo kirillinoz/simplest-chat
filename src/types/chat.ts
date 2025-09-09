@@ -34,8 +34,8 @@ export const GEMINI_MODELS: Record<GeminiModel, ModelConfig> = {
   'gemini-2.5-flash-lite': {
     name: 'Gemini 2.5 Flash Lite',
     description: 'Fastest model for simple tasks',
-    thinkingRange: { min: 0, max: 8192 },
-    defaultThinking: 'low',
+    thinkingRange: { min: 512, max: 24576 },
+    defaultThinking: 'none',
     maxTokens: 8192,
     supportedFeatures: ['thinking', 'vision'],
     canDisableThinking: true,
@@ -43,8 +43,8 @@ export const GEMINI_MODELS: Record<GeminiModel, ModelConfig> = {
   'gemini-2.5-flash': {
     name: 'Gemini 2.5 Flash',
     description: 'Fast and versatile model for most tasks',
-    thinkingRange: { min: 0, max: 32768 },
-    defaultThinking: 'medium',
+    thinkingRange: { min: 0, max: 24576 },
+    defaultThinking: 'dynamic',
     maxTokens: 8192,
     supportedFeatures: ['thinking', 'vision', 'files'],
     canDisableThinking: true,
@@ -52,8 +52,8 @@ export const GEMINI_MODELS: Record<GeminiModel, ModelConfig> = {
   'gemini-2.5-pro': {
     name: 'Gemini 2.5 Pro',
     description: 'Most capable model for complex tasks',
-    thinkingRange: { min: 0, max: 65536 },
-    defaultThinking: 'high',
+    thinkingRange: { min: 128, max: 32768 },
+    defaultThinking: 'dynamic',
     maxTokens: 8192,
     supportedFeatures: ['thinking', 'vision', 'files'],
     canDisableThinking: false,
