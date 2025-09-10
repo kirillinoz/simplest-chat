@@ -14,7 +14,7 @@
     "format:write": "prettier --write ."
   },
   "dependencies": {
-    "@google/genai": "^1.14.0",
+    "@google/genai": "^1.18.0",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-popover": "^1.1.15",
@@ -38,6 +38,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-markdown": "^10.1.0",
+    "react-textarea-autosize": "^8.5.9",
     "rehype-highlight": "^7.0.2",
     "rehype-katex": "^7.0.1",
     "remark-gfm": "^4.0.1",

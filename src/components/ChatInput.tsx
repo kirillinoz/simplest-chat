@@ -3,12 +3,12 @@ import { Send, Paperclip, X, FileText, AlertCircle } from 'lucide-react';
 import { chatActions, chatStore } from '../store/chatStore';
 import { fileStorage } from '../utils/fileStorage';
 import { Button } from './ui/button';
-import { Textarea } from './ui/textarea';
 import { ModelSelector } from './ModelSelector';
 import { ThinkingBudgetSelector } from './ThinkingBudgetSelector';
 import { useStore } from '@tanstack/react-store';
 import { TemperatureSelector } from './TemperatureSelector';
 import { ResponseStyleSelector } from './ResponseStyleSelector';
+import TextareaAutosize from 'react-textarea-autosize';
 
 export const ChatInput = () => {
   const { settings } = useStore(chatStore);
@@ -216,13 +216,14 @@ export const ChatInput = () => {
 
         <form onSubmit={handleSubmit} className="flex items-end gap-2">
           <div className="flex-1">
-            <Textarea
+            <TextareaAutosize
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type your message here..."
-              className="min-h-[44px] max-h-32 resize-none bg-theme-background border-theme-border"
-              rows={1}
+              className="w-full resize-none rounded-md border border-theme-border bg-theme-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              minRows={2}
+              maxRows={15}
               disabled={isUploading}
             />
           </div>

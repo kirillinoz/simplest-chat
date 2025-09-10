@@ -20,7 +20,7 @@ interface ChatState {
   settings: AppSettings;
   isLoading: boolean;
   error: string | null;
-  streamingMessageId: string | null; // Track which message is streaming
+  streamingMessageId: string | null;
 }
 
 const initialState: ChatState = {
@@ -144,6 +144,153 @@ export const chatActions = {
     });
   },
 
+  replaceMessagePair: async (
+    userMessageId: string,
+    newContent: string,
+    newAttachments: FileReference[],
+    newSettings: {
+      model: GeminiModel;
+      thinkingBudget: ThinkingBudget;
+      temperature: number;
+    }
+  ) => {
+    const { chats, currentChatId } = chatStore.state;
+    const chat = chats.find((c) => c.id === currentChatId);
+    if (!chat) return;
+
+    const userMessageIndex = chat.messages.findIndex(
+      (m) => m.id === userMessageId
+    );
+    if (userMessageIndex === -1) return;
+
+    const messagesAfter = chat.messages.slice(userMessageIndex + 2);
+
+    // --- 2. Clean Up Attachments from Messages to be Deleted ---
+    const attachmentsToDelete = messagesAfter.flatMap(
+      (msg) => msg.attachments || []
+    );
+    if (attachmentsToDelete.length > 0) {
+      try {
+        await Promise.all(
+          attachmentsToDelete.map((ref) => fileStorage.deleteFile(ref.id))
+        );
+      } catch (error) {
+        console.error(
+          'Failed to delete attachments from subsequent messages:',
+          error
+        );
+      }
+    }
+
+    const originalUserMessage = chat.messages[userMessageIndex];
+    const assistantMessage = chat.messages[userMessageIndex + 1];
+
+    if (!assistantMessage) return;
+
+    // --- 1. Optimistic UI Update ---
+    const newTimestamp = new Date();
+    chatStore.setState((prev) => {
+      const updatedChats = prev.chats.map((c) => {
+        if (c.id !== currentChatId) return c;
+
+        // Take only the messages up to the point of editing
+        const messagesToKeep = c.messages.slice(0, userMessageIndex + 2);
+
+        // Replace user message with new content immediately
+        messagesToKeep[userMessageIndex] = {
+          ...originalUserMessage,
+          content: newContent,
+          attachments: newAttachments,
+          timestamp: newTimestamp,
+        };
+        // Clear assistant content to prepare for streaming
+        messagesToKeep[userMessageIndex + 1] = {
+          ...assistantMessage,
+          content: '',
+        };
+        return { ...c, messages: messagesToKeep };
+      });
+
+      return {
+        ...prev,
+        chats: updatedChats,
+        isLoading: true,
+        streamingMessageId: assistantMessage.id, // Start streaming on assistant message
+        error: null,
+      };
+    });
+
+    const startTime = Date.now();
+
+    try {
+      const history = chat.messages.slice(0, userMessageIndex).map((msg) => ({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.content }],
+      }));
+
+      const files = await Promise.all(
+        newAttachments.map(async (ref) => await fileStorage.getFile(ref.id))
+      ).then((files) => files.filter(Boolean) as File[]);
+
+      let responseContent = '';
+      await sendMessageToGeminiStream(
+        newContent,
+        history,
+        files,
+        newSettings.model,
+        newSettings.thinkingBudget,
+        newSettings.temperature,
+        (chunk) => {
+          responseContent += chunk;
+          chatActions.updateStreamingMessage(
+            assistantMessage.id,
+            responseContent
+          );
+        }
+      );
+
+      chatStore.setState((prev) => {
+        const updatedChats = prev.chats.map((c) => {
+          if (c.id !== currentChatId) return c;
+          const updatedMessages = [...c.messages];
+          updatedMessages[userMessageIndex + 1] = {
+            ...assistantMessage,
+            content: responseContent,
+            timestamp: newTimestamp,
+            model: newSettings.model,
+            thinkingBudget: newSettings.thinkingBudget,
+            temperature: newSettings.temperature,
+            responseTimeMs: Date.now() - startTime,
+          };
+          return { ...c, messages: updatedMessages };
+        });
+        storage.saveChats(updatedChats);
+        return { ...prev, chats: updatedChats };
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to get response.';
+      console.error('Error replacing message pair:', error);
+
+      chatStore.setState((prev) => {
+        // Find the original full chat from the previous state
+        const originalChat = prev.chats.find((c) => c.id === currentChatId);
+        if (!originalChat) return prev;
+
+        // Restore the original full message list
+        const updatedChats = prev.chats.map((c) =>
+          c.id === currentChatId ? { ...c, messages: chat.messages } : c
+        );
+        return { ...prev, chats: updatedChats, error: errorMessage };
+      });
+    } finally {
+      chatStore.setState((prev) => ({
+        ...prev,
+        isLoading: false,
+        streamingMessageId: null,
+      }));
+    }
+  },
   createNewChat: () => {
     const newChat: Chat = {
       id: Date.now().toString(),
@@ -169,6 +316,52 @@ export const chatActions = {
   selectChat: (chatId: string) => {
     storage.setCurrentChatId(chatId);
     chatStore.setState((prev) => ({ ...prev, currentChatId: chatId }));
+  },
+
+  deleteMessagePair: async (chatId: string, userMessageId: string) => {
+    const { chats } = chatStore.state;
+    const chat = chats.find((c) => c.id === chatId);
+    if (!chat) return;
+
+    const userMessageIndex = chat.messages.findIndex(
+      (m) => m.id === userMessageId
+    );
+    if (userMessageIndex === -1) return;
+
+    const userMessage = chat.messages[userMessageIndex];
+    const assistantMessage = chat.messages[userMessageIndex + 1];
+
+    // Clean up attachments first using Promise.all
+    if (userMessage.attachments && userMessage.attachments.length > 0) {
+      try {
+        await Promise.all(
+          userMessage.attachments.map((ref) => fileStorage.deleteFile(ref.id))
+        );
+      } catch (error) {
+        console.error('Failed to delete one or more attachments:', error);
+        // We can still proceed to delete the message from the UI
+      }
+    }
+
+    // Now, update the state synchronously
+    chatStore.setState((prev) => {
+      const messagesToDelete = [userMessage.id];
+      if (assistantMessage?.role === 'assistant') {
+        messagesToDelete.push(assistantMessage.id);
+      }
+
+      const updatedMessages = prev.chats
+        .find((c) => c.id === chatId)
+        ?.messages.filter((m) => !messagesToDelete.includes(m.id));
+
+      if (!updatedMessages) return prev;
+
+      const updatedChats = prev.chats.map((c) =>
+        c.id === chatId ? { ...c, messages: updatedMessages } : c
+      );
+      storage.saveChats(updatedChats);
+      return { ...prev, chats: updatedChats };
+    });
   },
 
   deleteChat: async (chatId: string) => {
@@ -508,114 +701,6 @@ export const chatActions = {
       ...prev,
       chats: updatedChats,
     }));
-  },
-
-  retryMessageWithSettings: async (
-    chatId: string,
-    userMessage: Message,
-    retrySettings: {
-      model: GeminiModel;
-      thinkingBudget: ThinkingBudget;
-      temperature: number;
-    }
-  ) => {
-    const { chats } = chatStore.state;
-    const startTime = Date.now();
-
-    try {
-      // Convert file references back to File objects for API call
-      const files = await Promise.all(
-        (userMessage.attachments || []).map(async (ref) => {
-          const file = await fileStorage.getFile(ref.id);
-          return file;
-        })
-      );
-
-      // Filter out any null files
-      const validFiles = files.filter(Boolean) as File[];
-
-      // Create new assistant message placeholder with the selected model
-      const assistantMessageId = Date.now().toString();
-      const assistantMessage: Message = {
-        id: assistantMessageId,
-        role: 'assistant',
-        content: '', // Start empty
-        timestamp: new Date(),
-        model: retrySettings.model, // Use the model from retry settings
-        thinkingBudget: retrySettings.thinkingBudget, // Store retry thinking budget
-        temperature: retrySettings.temperature, // Store retry temperature
-      };
-
-      // Add only the new assistant message (user message already exists)
-      const updatedChats = chats.map((chat) =>
-        chat.id === chatId
-          ? {
-              ...chat,
-              messages: [...chat.messages, assistantMessage],
-              updatedAt: new Date(),
-            }
-          : chat
-      );
-
-      chatStore.setState((prev) => ({
-        ...prev,
-        chats: updatedChats,
-        isLoading: true,
-        streamingMessageId: assistantMessageId,
-        error: null,
-      }));
-
-      // Save to storage
-      storage.saveChats(updatedChats);
-
-      const currentChat = updatedChats.find((chat) => chat.id === chatId)!;
-
-      // Convert conversation history (excluding the new assistant message)
-      const conversationHistory = currentChat.messages
-        .slice(0, -1) // Exclude the new assistant message we just added
-        .map((msg) => ({
-          role: msg.role === 'user' ? 'user' : 'model',
-          parts: [{ text: msg.content }],
-        }));
-
-      // Use the settings from the retry dialog
-      await sendMessageToGeminiStream(
-        userMessage.content,
-        conversationHistory,
-        validFiles,
-        retrySettings.model,
-        retrySettings.thinkingBudget,
-        retrySettings.temperature,
-        (chunk: string) => {
-          // Update the streaming message
-          const currentContent =
-            chatStore.state.chats
-              .find((chat) => chat.id === chatId)
-              ?.messages.find((msg) => msg.id === assistantMessageId)
-              ?.content || '';
-
-          chatActions.updateStreamingMessage(
-            assistantMessageId,
-            currentContent + chunk
-          );
-        }
-      );
-
-      // Calculate response time and update the message
-      const responseTime = Date.now() - startTime;
-      chatActions.updateMessageResponseTime(assistantMessageId, responseTime);
-
-      chatActions.finishStreamingMessage();
-    } catch (error) {
-      console.error('Error retrying message:', error);
-      chatStore.setState((prev) => ({
-        ...prev,
-        isLoading: false,
-        streamingMessageId: null,
-        error:
-          error instanceof Error ? error.message : 'Failed to retry message',
-      }));
-    }
   },
 
   updateMessageResponseTime: (messageId: string, responseTimeMs: number) => {

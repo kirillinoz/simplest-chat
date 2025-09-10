@@ -1,19 +1,21 @@
 import { useState, useEffect } from 'react';
-import type { GeminiModel, Message, ThinkingBudget } from '../types/chat';
+import type { Message, ThinkingBudget } from '../types/chat';
 import {
   User,
   Bot,
   Image as ImageIcon,
   FileText,
   Copy,
-  GitBranch,
-  Trash2,
-  RotateCcw,
+  Check,
   Clock,
   Brain,
   Zap,
   Palette,
   Component,
+  GitBranch,
+  Trash2,
+  Edit,
+  Loader2,
 } from 'lucide-react';
 import { Card } from './ui/card';
 import {
@@ -31,31 +33,17 @@ import 'katex/dist/katex.min.css';
 import type { FileReference } from '../utils/fileStorage';
 import { fileStorage } from '../utils/fileStorage';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Button } from './ui/button';
-import { RetryDialog } from './RetryDialog';
 import { useStore } from '@tanstack/react-store';
 import { chatStore } from '@/store/chatStore';
+import type { ComponentProps } from 'react';
 
 interface ChatMessageProps {
   message: Message;
   isStreaming?: boolean;
   onCopy?: (message: Message) => void;
   onBranch?: (message: Message) => void;
-  onRetry?: (
-    message: Message,
-    retrySettings: {
-      model: GeminiModel;
-      thinkingBudget: ThinkingBudget;
-      temperature: number;
-    }
-  ) => void;
+  onRetry?: (message: Message) => void;
   onDelete?: (message: Message) => void;
-  currentSettings?: {
-    model: GeminiModel;
-    thinkingBudget: ThinkingBudget;
-    temperature: number;
-  };
-  isRetrying?: boolean;
 }
 
 export const ChatMessage = ({
@@ -65,8 +53,6 @@ export const ChatMessage = ({
   onBranch,
   onRetry,
   onDelete,
-  currentSettings,
-  isRetrying = false,
 }: ChatMessageProps) => {
   const { theme } = useTheme();
   const { settings } = useStore(chatStore);
@@ -74,7 +60,6 @@ export const ChatMessage = ({
   const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set());
   const [showActions, setShowActions] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
-  const [showRetryDialog, setShowRetryDialog] = useState(false);
 
   // Dynamically load highlight.js theme based on current theme
   useEffect(() => {
@@ -200,15 +185,7 @@ export const ChatMessage = ({
   };
 
   const handleRetryClick = () => {
-    setShowRetryDialog(true);
-  };
-
-  const handleRetryConfirm = (settings: {
-    model: GeminiModel;
-    thinkingBudget: ThinkingBudget;
-    temperature: number;
-  }) => {
-    onRetry?.(message, settings);
+    onRetry?.(message);
   };
 
   const handleDelete = () => {
@@ -282,8 +259,14 @@ export const ChatMessage = ({
     return isImage(ref) && file !== null;
   };
 
-  const isValidFileReference = (ref: any): ref is FileReference => {
-    return ref && typeof ref === 'object' && ref.id && ref.name && ref.type;
+  const isValidFileReference = (ref: unknown): ref is FileReference => {
+    return (
+      !!ref &&
+      typeof ref === 'object' &&
+      'id' in ref &&
+      'name' in ref &&
+      'type' in ref
+    );
   };
 
   // Filter out invalid attachments
@@ -395,6 +378,12 @@ export const ChatMessage = ({
 
           {/* Message content */}
           <div className="prose prose-sm max-w-none">
+            {isStreaming && !message.content && (
+              <div className="flex items-center gap-2 text-theme-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Generating...</span>
+              </div>
+            )}
             <ReactMarkdown
               remarkPlugins={[remarkGfm, remarkMath]}
               rehypePlugins={[rehypeHighlight, rehypeKatex]}
@@ -435,7 +424,11 @@ export const ChatMessage = ({
                     {children}
                   </blockquote>
                 ),
-                code: (props: any) => {
+                code: (
+                  props: ComponentProps<'code'> & {
+                    inline?: boolean;
+                  }
+                ) => {
                   const { inline, children, className, ...rest } = props;
                   if (inline) {
                     return (
@@ -505,8 +498,8 @@ export const ChatMessage = ({
               {message.content}
             </ReactMarkdown>
 
-            {/* Streaming cursor */}
-            {isStreaming && (
+            {/* Streaming cursor for when content is already partially loaded */}
+            {isStreaming && message.content && (
               <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1"></span>
             )}
           </div>
@@ -537,12 +530,6 @@ export const ChatMessage = ({
                     <span>{formatResponseTime(message.responseTimeMs)}</span>
                   </div>
                 )}
-                {isStreaming && !message.responseTimeMs && (
-                  <div className="flex items-center gap-1">
-                    <Clock size={12} />
-                    <span>Generating...</span>
-                  </div>
-                )}
 
                 {/* Model info */}
                 {message.model && (
@@ -551,9 +538,6 @@ export const ChatMessage = ({
                     <span className="px-2 py-1 rounded text-xs font-medium bg-theme-muted text-theme-foreground flex items-center gap-1">
                       <Component size={12} />
                       {getModelDisplayName(message.model)}
-                      {isStreaming && (
-                        <span className="ml-1 animate-pulse">●</span>
-                      )}
                     </span>
                   </>
                 )}
@@ -621,82 +605,62 @@ export const ChatMessage = ({
               </>
             )}
 
-            {/* Action buttons */}
+            {/* --- NEW UNIFIED CONTROLS --- */}
             {showActions && !isStreaming && (
-              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                {/* Copy button - available for all messages */}
-                <Button
-                  variant="ghost"
-                  size="sm"
+              <div className="flex items-center gap-4 text-theme-muted-foreground ml-2">
+                {/* Copy Button */}
+                <button
                   onClick={handleCopy}
-                  className="h-8 px-2 text-theme-muted-foreground hover:text-theme-foreground"
+                  className="flex items-center gap-1 hover:text-theme-foreground transition-colors"
                   title="Copy message"
                 >
-                  <Copy size={14} />
-                  {copySuccess && <span className="ml-1 text-xs">Copied!</span>}
-                </Button>
+                  {copySuccess ? (
+                    <Check size={16} className="text-green-500" />
+                  ) : (
+                    <Copy size={16} />
+                  )}
+                </button>
 
-                {/* Branch button - only for assistant messages */}
-                {message.role === 'assistant' && onBranch && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleBranch}
-                    className="h-8 px-2 text-theme-muted-foreground hover:text-theme-foreground"
-                    title="Branch conversation"
-                  >
-                    <GitBranch size={14} />
-                  </Button>
-                )}
-
-                {/* Retry button - only for assistant messages */}
-                {message.role === 'assistant' && onRetry && currentSettings && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                {/* Edit & Retry Button (USER ONLY) */}
+                {message.role === 'user' && onRetry && (
+                  <button
                     onClick={handleRetryClick}
-                    disabled={isRetrying}
-                    className="h-8 px-2 text-theme-muted-foreground hover:text-theme-foreground disabled:opacity-50"
-                    title="Retry message with different settings"
+                    className="flex items-center gap-1 hover:text-theme-foreground transition-colors disabled:opacity-50"
+                    title="Edit & Retry"
                   >
-                    {isRetrying ? (
-                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    ) : (
-                      <RotateCcw size={14} />
-                    )}
-                  </Button>
+                    <Edit size={16} />
+                  </button>
                 )}
 
-                {/* Delete button - only for user messages */}
+                {/* Delete Button (for user messages) */}
                 {message.role === 'user' && onDelete && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <button
                     onClick={handleDelete}
-                    className="h-8 px-2 text-theme-muted-foreground hover:text-destructive"
+                    className="flex items-center gap-1 hover:text-destructive transition-colors"
                     title="Delete message"
                   >
-                    <Trash2 size={14} />
-                  </Button>
+                    <Trash2 size={16} />
+                  </button>
                 )}
+
+                {/* Branch Button (ASSISTANT ONLY) */}
+                {message.role === 'assistant' && onBranch && (
+                  <button
+                    onClick={handleBranch}
+                    className="flex items-center gap-1 hover:text-theme-foreground transition-colors"
+                    title="Branch from this message"
+                  >
+                    <GitBranch size={16} />
+                  </button>
+                )}
+
+                {/* Spacer to push delete button to the right */}
+                <div className="flex-grow"></div>
               </div>
             )}
           </div>
         </div>
       </div>
-
-      {/* Retry Dialog */}
-      {currentSettings && (
-        <RetryDialog
-          open={showRetryDialog}
-          onOpenChange={setShowRetryDialog}
-          initialModel={currentSettings.model}
-          initialThinkingBudget={currentSettings.thinkingBudget}
-          initialTemperature={currentSettings.temperature}
-          onConfirm={handleRetryConfirm}
-          isRetrying={isRetrying}
-        />
-      )}
     </>
   );
 };
