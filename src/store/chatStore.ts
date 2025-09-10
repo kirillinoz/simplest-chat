@@ -318,38 +318,44 @@ export const chatActions = {
     chatStore.setState((prev) => ({ ...prev, currentChatId: chatId }));
   },
 
-  deleteMessagePair: (chatId: string, userMessageId: string) => {
-    chatStore.setState((prev) => {
-      const chat = prev.chats.find((c) => c.id === chatId);
-      if (!chat) return prev;
+  deleteMessagePair: async (chatId: string, userMessageId: string) => {
+    const { chats } = chatStore.state;
+    const chat = chats.find((c) => c.id === chatId);
+    if (!chat) return;
 
-      const userMessageIndex = chat.messages.findIndex(
-        (m) => m.id === userMessageId
-      );
-      if (userMessageIndex === -1) return prev;
+    const userMessageIndex = chat.messages.findIndex(
+      (m) => m.id === userMessageId
+    );
+    if (userMessageIndex === -1) return;
 
-      const userMessage = chat.messages[userMessageIndex];
-      const assistantMessage = chat.messages[userMessageIndex + 1];
+    const userMessage = chat.messages[userMessageIndex];
+    const assistantMessage = chat.messages[userMessageIndex + 1];
 
-      // Clean up attachments
-      if (userMessage.attachments) {
-        userMessage.attachments.forEach(async (ref) => {
-          try {
-            await fileStorage.deleteFile(ref.id);
-          } catch (error) {
-            console.error('Error deleting attachment:', error);
-          }
-        });
+    // Clean up attachments first using Promise.all
+    if (userMessage.attachments && userMessage.attachments.length > 0) {
+      try {
+        await Promise.all(
+          userMessage.attachments.map((ref) => fileStorage.deleteFile(ref.id))
+        );
+      } catch (error) {
+        console.error('Failed to delete one or more attachments:', error);
+        // We can still proceed to delete the message from the UI
       }
+    }
 
+    // Now, update the state synchronously
+    chatStore.setState((prev) => {
       const messagesToDelete = [userMessage.id];
       if (assistantMessage?.role === 'assistant') {
         messagesToDelete.push(assistantMessage.id);
       }
 
-      const updatedMessages = chat.messages.filter(
-        (m) => !messagesToDelete.includes(m.id)
-      );
+      const updatedMessages = prev.chats
+        .find((c) => c.id === chatId)
+        ?.messages.filter((m) => !messagesToDelete.includes(m.id));
+
+      if (!updatedMessages) return prev;
+
       const updatedChats = prev.chats.map((c) =>
         c.id === chatId ? { ...c, messages: updatedMessages } : c
       );
@@ -480,7 +486,6 @@ export const chatActions = {
       isLoading: false,
       error: null,
       streamingMessageId: null,
-      editingBranchState: null,
     }));
   },
 
