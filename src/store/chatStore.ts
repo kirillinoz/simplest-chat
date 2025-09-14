@@ -21,6 +21,7 @@ interface ChatState {
   isLoading: boolean;
   error: string | null;
   streamingMessageId: string | null;
+  scrollPositions: Record<string, number>;
 }
 
 const initialState: ChatState = {
@@ -30,6 +31,7 @@ const initialState: ChatState = {
   isLoading: false,
   error: null,
   streamingMessageId: null,
+  scrollPositions: {},
 };
 
 if (initialState.settings.geminiApiKey) {
@@ -486,6 +488,7 @@ export const chatActions = {
       isLoading: false,
       error: null,
       streamingMessageId: null,
+      scrollPositions: {},
     }));
   },
 
@@ -715,6 +718,16 @@ export const chatActions = {
     chatStore.setState((prev) => ({
       ...prev,
       chats: updatedChats,
+    }));
+  },
+
+  saveScrollPosition: (chatId: string, position: number) => {
+    chatStore.setState((prev) => ({
+      ...prev,
+      scrollPositions: {
+        ...prev.scrollPositions,
+        [chatId]: position,
+      },
     }));
   },
 };

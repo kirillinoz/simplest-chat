@@ -9,10 +9,11 @@ import { Button } from '../components/ui/button';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { MessageSkeleton } from '../components/MessageSkeleton';
 import type { GeminiModel, Message, ThinkingBudget } from '@/types/chat';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { RetryDialog } from '@/components/RetryDialog';
 import type { FileReference } from '@/utils/fileStorage';
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
+import { ArrowDownCircle } from 'lucide-react';
 
 export const Route = createFileRoute('/')({
   component: ChatApp,
@@ -26,6 +27,7 @@ function ChatApp() {
     isLoading,
     error,
     streamingMessageId,
+    scrollPositions,
   } = useStore(chatStore);
 
   // State to manage the unified Edit & Retry dialog
@@ -41,11 +43,56 @@ function ChatApp() {
     messageToDelete?: Message;
   }>({ open: false });
 
+  const currentChat = chats.find((chat) => chat.id === currentChatId);
+
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const restoredChatId = useRef<string | null>(null); // Track which chat has been restored
+
+  useEffect(() => {
+    if (!currentChatId || !scrollAreaRef.current) return;
+
+    const savedPosition = scrollPositions[currentChatId];
+
+    // Restore scroll position only if switching to a new chat
+    if (restoredChatId.current !== currentChatId) {
+      restoredChatId.current = currentChatId; // Mark this chat as restored
+      if (savedPosition !== undefined) {
+        setTimeout(() => {
+          if (scrollAreaRef.current) {
+            scrollAreaRef.current.scrollTop = savedPosition; // Restore to the saved position
+          }
+        }, 0);
+      }
+    }
+  }, [currentChatId, scrollPositions]); // Only re-run when the chat ID changes
+
   if (!settings.geminiApiKey) {
     return <ApiKeySetup onApiKeySet={chatActions.setApiKey} />;
   }
 
-  const currentChat = chats.find((chat) => chat.id === currentChatId);
+  const handleScroll = () => {
+    const scrollable = scrollAreaRef.current;
+    if (!scrollable || !currentChatId) return;
+
+    // Save the current scroll position
+    chatActions.saveScrollPosition(currentChatId, scrollable.scrollTop);
+
+    // Show or hide the "Scroll to Bottom" button
+    const isAtBottom =
+      scrollable.scrollHeight - scrollable.scrollTop - scrollable.clientHeight <
+      200;
+    setShowScrollToBottom(!isAtBottom);
+  };
+
+  const scrollToBottom = () => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTo({
+        top: scrollAreaRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  };
 
   // Action handlers for ChatMessage
   const handleCopyMessage = (message: Message) => {
@@ -175,7 +222,11 @@ function ChatApp() {
           </div>
         ) : (
           <>
-            <ScrollArea className="flex-1 overflow-auto">
+            <ScrollArea
+              className="flex-1 overflow-auto"
+              viewportRef={scrollAreaRef}
+              onScroll={handleScroll}
+            >
               <div className="max-w-4xl mx-auto pt-16">
                 {currentChat.messages.map((message) => (
                   <ChatMessage
@@ -205,6 +256,16 @@ function ChatApp() {
               </div>
             </div>
           </>
+        )}
+        {showScrollToBottom && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="absolute bottom-24 right-8 h-10 w-10 rounded-full shadow-lg"
+            onClick={scrollToBottom}
+          >
+            <ArrowDownCircle size={20} />
+          </Button>
         )}
       </div>
       {/* Render the ConfirmationDialog */}
