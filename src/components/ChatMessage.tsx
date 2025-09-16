@@ -36,6 +36,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useStore } from '@tanstack/react-store';
 import { chatStore } from '@/store/chatStore';
 import type { ComponentProps } from 'react';
+import React from 'react';
 
 interface ChatMessageProps {
   message: Message;
@@ -430,6 +431,8 @@ export const ChatMessage = ({
                   }
                 ) => {
                   const { inline, children, className, ...rest } = props;
+                  // This handler now renders BOTH inline code and the code for blocks.
+                  // The decision to wrap in a <pre> or not is moved to the `pre` handler.
                   if (inline) {
                     return (
                       <code
@@ -442,18 +445,46 @@ export const ChatMessage = ({
                   }
                   return (
                     <code
-                      className={`${className || ''} block bg-theme-background text-theme-foreground p-4 rounded-lg overflow-x-auto text-sm font-mono my-3`}
+                      className={`${className || ''} text-theme-foreground font-mono text-sm`}
                       {...rest}
                     >
                       {children}
                     </code>
                   );
                 },
-                pre: ({ children }) => (
-                  <pre className="bg-theme-background border border-theme-border rounded-lg overflow-hidden mb-4">
-                    {children}
-                  </pre>
-                ),
+                pre: (props) => {
+                  const { children, ...rest } = props;
+
+                  // Ensure children is a valid React element
+                  if (React.isValidElement(children) && children.props) {
+                    // @ts-expect-error (ReactMarkdown types don't guarantee children.props exists)
+                    const codeString = String(children.props.children).trim();
+
+                    // If the code block is a single line, render it as an inline-style element
+                    if (!codeString.includes('\n')) {
+                      return (
+                        <div className="my-4">
+                          <code className="bg-theme-muted text-theme-foreground px-1.5 py-0.5 rounded text-sm font-mono">
+                            {
+                              // @ts-expect-error (ReactMarkdown types don't guarantee children.props exists)
+                              children.props.children
+                            }
+                          </code>
+                        </div>
+                      );
+                    }
+                  }
+
+                  // For multi-line code, render the standard pre-formatted block.
+                  return (
+                    <pre
+                      className="bg-theme-background border border-theme-border rounded-lg p-4 overflow-x-auto mb-4"
+                      {...rest}
+                    >
+                      {children}
+                    </pre>
+                  );
+                },
                 table: ({ children }) => (
                   <div className="overflow-x-auto mb-4">
                     <table className="min-w-full border border-theme-border rounded-lg">
