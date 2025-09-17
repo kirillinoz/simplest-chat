@@ -29,6 +29,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeKatex from 'rehype-katex';
+import rehypeRaw from 'rehype-raw';
 import 'katex/dist/katex.min.css';
 import type { FileReference } from '../utils/fileStorage';
 import { fileStorage } from '../utils/fileStorage';
@@ -387,7 +388,7 @@ export const ChatMessage = ({
             )}
             <ReactMarkdown
               remarkPlugins={[remarkGfm, remarkMath]}
-              rehypePlugins={[rehypeHighlight, rehypeKatex]}
+              rehypePlugins={[rehypeRaw, rehypeHighlight, rehypeKatex]}
               components={{
                 h1: ({ children }) => (
                   <h1 className="text-xl font-bold text-theme-foreground mt-6 mb-4 first:mt-0">
