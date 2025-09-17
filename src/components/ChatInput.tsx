@@ -20,24 +20,31 @@ export const ChatInput = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() && attachments.length === 0) return;
-    if (isUploading) return;
+    if ((!message.trim() && attachments.length === 0) || isUploading) return;
+
+    const messageToSend = message;
+    const attachmentsToSend = attachments;
+
+    setIsUploading(true);
+    setMessage('');
+    setAttachments([]);
 
     try {
-      setIsUploading(true);
-
       // Store files and get references
       const fileReferences = await Promise.all(
         attachments.map((file) => fileStorage.storeFile(file))
       );
 
       await chatActions.sendMessage(message, fileReferences);
-      setMessage('');
-      setAttachments([]);
+
       setUploadError('');
     } catch (error) {
       console.error('Failed to send message:', error);
       setUploadError('Failed to send message. Please try again.');
+
+      setMessage(messageToSend);
+      setAttachments(attachmentsToSend);
+
       setTimeout(() => setUploadError(''), 3000);
     } finally {
       setIsUploading(false);
