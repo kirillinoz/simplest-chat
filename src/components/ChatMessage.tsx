@@ -294,7 +294,7 @@ export const ChatMessage = ({
           {message.role === 'user' ? <User size={16} /> : <Bot size={16} />}
         </div>
 
-        <div className="flex-1 space-y-3">
+        <div className="flex-1 space-y-3 min-w-0">
           {/* Attachments */}
           {message.role === 'user' && validAttachments.length > 0 && (
             <div className="space-y-2">
@@ -391,22 +391,22 @@ export const ChatMessage = ({
               rehypePlugins={[rehypeRaw, rehypeHighlight, rehypeKatex]}
               components={{
                 h1: ({ children }) => (
-                  <h1 className="text-xl font-bold text-theme-foreground mt-6 mb-4 first:mt-0">
+                  <h1 className="text-xl font-bold text-theme-foreground mt-6 mb-4 first:mt-0 break-words">
                     {children}
                   </h1>
                 ),
                 h2: ({ children }) => (
-                  <h2 className="text-lg font-semibold text-theme-foreground mt-5 mb-3 first:mt-0">
+                  <h2 className="text-lg font-semibold text-theme-foreground mt-5 mb-3 first:mt-0 break-words">
                     {children}
                   </h2>
                 ),
                 h3: ({ children }) => (
-                  <h3 className="text-base font-semibold text-theme-foreground mt-4 mb-2 first:mt-0">
+                  <h3 className="text-base font-semibold text-theme-foreground mt-4 mb-2 first:mt-0 break-words">
                     {children}
                   </h3>
                 ),
                 p: ({ children }) => (
-                  <p className="text-theme-foreground leading-relaxed mb-4 last:mb-0">
+                  <p className="text-theme-foreground leading-relaxed mb-4 last:mb-0 break-words">
                     {children}
                   </p>
                 ),
@@ -419,10 +419,12 @@ export const ChatMessage = ({
                   </ol>
                 ),
                 li: ({ children }) => (
-                  <li className="text-theme-foreground my-3">{children}</li>
+                  <li className="text-theme-foreground my-3 break-words">
+                    {children}
+                  </li>
                 ),
                 blockquote: ({ children }) => (
-                  <blockquote className="border-l-4 border-theme-border pl-4 py-2 my-4 bg-theme-muted/50 italic">
+                  <blockquote className="border-l-4 border-theme-border pl-4 py-2 my-4 bg-theme-muted/50 italic break-words">
                     {children}
                   </blockquote>
                 ),
@@ -437,7 +439,7 @@ export const ChatMessage = ({
                   if (inline) {
                     return (
                       <code
-                        className="bg-theme-muted text-theme-foreground px-1.5 py-0.5 rounded text-sm font-mono"
+                        className="bg-theme-muted text-theme-foreground px-1.5 py-0.5 rounded text-sm font-mono break-all"
                         {...rest}
                       >
                         {children}
@@ -465,7 +467,7 @@ export const ChatMessage = ({
                     if (!codeString.includes('\n')) {
                       return (
                         <div className="my-4">
-                          <code className="bg-theme-muted text-theme-foreground px-1.5 py-0.5 rounded text-sm font-mono">
+                          <code className="bg-theme-muted text-theme-foreground px-1.5 py-0.5 rounded text-sm font-mono break-all">
                             {
                               // @ts-expect-error (ReactMarkdown types don't guarantee children.props exists)
                               children.props.children
@@ -497,12 +499,12 @@ export const ChatMessage = ({
                   <thead className="bg-theme-muted">{children}</thead>
                 ),
                 th: ({ children }) => (
-                  <th className="border border-theme-border px-4 py-2 text-left font-semibold text-theme-foreground">
+                  <th className="border border-theme-border px-4 py-2 text-left font-semibold text-theme-foreground break-words">
                     {children}
                   </th>
                 ),
                 td: ({ children }) => (
-                  <td className="border border-theme-border px-4 py-2 text-theme-foreground">
+                  <td className="border border-theme-border px-4 py-2 text-theme-foreground break-words">
                     {children}
                   </td>
                 ),
@@ -511,7 +513,7 @@ export const ChatMessage = ({
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-chart-1 hover:text-chart-1/80 underline"
+                    className="text-chart-1 hover:text-chart-1/80 underline break-all"
                   >
                     {children}
                   </a>
