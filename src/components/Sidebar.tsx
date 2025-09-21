@@ -53,6 +53,8 @@ export const Sidebar = () => {
     }
   };
 
+  const isNewChatPending = chats.length > 0 && chats[0].messages.length === 0;
+
   return (
     <div className="w-80 bg-theme-muted text-theme-foreground flex flex-col h-screen border-r border-theme-border">
       {/* Logo */}
@@ -71,6 +73,7 @@ export const Sidebar = () => {
       <div className="p-4 flex-shrink-0">
         <Button
           onClick={chatActions.createNewChat}
+          disabled={isNewChatPending}
           className="w-full justify-start bg-theme-background hover:bg-theme-muted text-theme-foreground border-0 btn-primary"
           variant="outline"
         >
