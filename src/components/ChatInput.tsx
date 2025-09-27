@@ -51,6 +51,43 @@ export const ChatInput = () => {
     }
   };
 
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData.items;
+    const files: File[] = [];
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === 'file') {
+        const file = item.getAsFile();
+        if (file) files.push(file);
+      }
+    }
+
+    // If files found, add them as attachments
+    if (files.length > 0) {
+      e.preventDefault(); // Prevent default paste behavior
+      setAttachments((prev) => [...prev, ...files]);
+      setUploadError('');
+      return;
+    }
+
+    // Optionally, handle pasted images from HTML (e.g., "Copy Image" from browser)
+    const html = e.clipboardData.getData('text/html');
+    if (html) {
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const img = doc.querySelector('img');
+      if (img && img.src.startsWith('data:image/')) {
+        // Convert base64 image to File
+        const res = await fetch(img.src);
+        const blob = await res.blob();
+        const file = new File([blob], 'pasted-image.png', { type: blob.type });
+        setAttachments((prev) => [...prev, file]);
+        setUploadError('');
+        e.preventDefault();
+      }
+    }
+  };
+
   const isImage = (file: File): boolean => {
     return (
       file.type.startsWith('image/') &&
@@ -232,6 +269,7 @@ export const ChatInput = () => {
               minRows={2}
               maxRows={15}
               disabled={isUploading}
+              onPaste={handlePaste}
             />
           </div>
 
